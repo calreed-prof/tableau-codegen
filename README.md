@@ -46,3 +46,9 @@ Real company workbooks and specs with live connection details live in `private/`
 Committed examples use placeholders (`your_account.snowflakecomputing.com`, `YOUR_WAREHOUSE`, ...).
 Before committing a new reference saved from Desktop, run `scripts/refdiff.py clean` and replace
 server, username, database, schema and table names.
+
+## Development process
+
+See `CLAUDE.md` (rules), `ROADMAP.md` (scope). In short: branch → PR → independent `pr-reviewer`
+verdict → human verifies in Desktop and squash-merges. Run `git config core.hooksPath githooks` once
+per clone to enable the local guards (no commits/pushes to `main`, leak check, tests).
