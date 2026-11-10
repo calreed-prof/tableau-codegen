@@ -54,42 +54,62 @@ private/                git-ignored: real company workbooks, specs, denylist
 ```
 
 **Data sources** (keyed by a short name; the first one is the default for sheets):
+- `caption` (optional): the name shown in Tableau. Default: CSV file name / Desktop-style
+  `TABLE (DB.TABLE) (SCHEMA)`.
 - `csv`: path relative to the spec. Column types (string/integer/real/date) are inferred.
-- `snowflake`: live connection. Required: `server`, `warehouse`, `database`, `schema`, `table`.
-  `auth`: `oauth` (aliases `sso`, `browser`; verified, prompts browser sign-in). `password` is
-  emitted but **unverified**. Needs a `columns` map: `name -> type` or `{type, caption, role}`;
-  types `string integer real date datetime boolean`. ALL_CAPS names get Desktop-style captions
-  (`SALES_AMT` → "Sales Amt"). Easiest: `tabgen introspect` an existing workbook on the same table.
+- `snowflake`: live connection.
+  - Required: `server`, `warehouse`, `database`, `schema`, `table`. Optional: `username`, `role`.
+  - `auth` (default `oauth`):
+    - `oauth` (aliases `sso`, `browser`): verified; opening the workbook prompts a browser sign-in.
+    - `password` is written as an unverified guess.
+    - Any other value is copied into the XML as-is, with no error. Don't use these until there's a
+      reference.
+  - Needs a `columns` map: `name -> type`, or `{type, caption, role}`. Types: `string integer real
+    date datetime boolean`.
+  - ALL_CAPS names get Desktop-style captions (`SALES_AMT` → "Sales Amt").
+  - Easiest way to fill it in: `tabgen introspect` an existing workbook on the same table. It drops
+    calcs that reference parameters.
 - `calcs`: `caption -> formula` (a real measure) or `{formula, type, role}`. Formulas use Tableau
   syntax with raw column names (`[SALES_AMT]`).
 
 **Sheets:**
-- `datasource` (optional), `rows`, `cols` (a field or a list), `mark`, and encodings `color`,
-  `size`, `label`, `detail`, `tooltip`.
-- Fields can be referenced by raw name or caption (`SALES_AMT` or `Sales Amt`), optionally wrapped:
-  `sum avg min max count countd` (aggregations), `yr qr mn` (date parts), `none` (as a dimension),
-  `agg` (an aggregate calc).
+- Keys:
+  - `datasource` (optional)
+  - `rows`, `cols`: a field or a list of fields
+  - `mark`: default `automatic`
+  - encodings `color`, `size`, `label`, `detail`, `tooltip`: one field each
+- Fields can be referenced by raw name or caption (`SALES_AMT` or `Sales Amt`), optionally wrapped
+  in:
+  - aggregations: `sum avg min max count countd`
+  - date parts: `yr qr mn`
+  - `none`: use as a dimension
+  - `agg` or `usr`: an aggregate calc
+- The wrapper isn't checked against the field type: `yr(Sales)` or `sum(Region)` builds, but makes a
+  view Tableau may reject.
 - Defaults:
   - measures → `sum`
   - aggregate calcs (`SUM(..)/SUM(..)`) → used as-is
   - dimensions → `none`
   - dates → `yr`
 - Marks: `bar line circle square text pie automatic area`.
-- Evidence status:
+- Evidence status (details in `docs/FORMAT.md`):
   - Opened correctly in Desktop: `sum`, `avg`, `none`, aggregate calcs; `bar`, `line`, `circle`;
     `color`.
-  - Seen in Desktop-saved files: `label` (text) and `tooltip`, plus marks `square`, `text`, `pie`,
-    `automatic`.
-  - Unverified (no evidence yet): everything else, e.g. `min`/`max`/`count`/`countd`, `yr`/`qr`/`mn`,
-    `area`, `size`, `detail`. See `docs/FORMAT.md`.
+  - Seen in a Desktop-saved reference: `label` (text), `tooltip`, `automatic`.
+  - Unverified: `min`/`max`/`count`/`countd`, `yr`/`qr`/`mn`; `square`, `text`, `pie`, `area`;
+    `size`, `detail`. The `count`/`countd` shelf prefixes are probably wrong.
 
 **Dashboards:**
-- `size` is `[width, height]` in px.
+- `size` is `[width, height]` in px. Default `[1200, 800]`.
 - `layout` is a list of rows, each a list of sheet names. Rows split the height equally, and sheets
   split each row's width equally.
 
-Spec mistakes (unknown field, sheet, mark or aggregation; missing Snowflake settings) stop the build
-with a clear message instead of producing a broken workbook.
+Common mistakes stop the build with a clear message instead of producing a broken workbook:
+- an unknown field, sheet, data source, mark, aggregation or column type
+- missing Snowflake settings or `columns`
+
+Validation is not complete yet: some malformed specs crash with a Python traceback, e.g. a missing
+`sheets` or `layout`, an empty `layout`, a column without `type`, or a list given as an encoding.
 
 ## Known limitations (see ROADMAP.md)
 
@@ -113,8 +133,10 @@ advisory only. **Ground truth is files saved by Desktop**; verified facts are in
    username, database, schema and table names before committing.
 3. Write `references/<feature>/spec.json` for the same workbook, build it, and
    `python3 scripts/refdiff.py diff <reference.twb> <generated.twb>`.
-4. Teach the compiler until the diff is only cosmetic. Add the case to `CASES` in
-   `tests/test_golden.py`, record the new facts in `docs/FORMAT.md`, and open the generated file in Desktop.
+4. Teach the compiler until the diff is only cosmetic. For a committed reference, add the case to
+   `CASES` in `tests/test_golden.py`. A private reference can't be used in CI, so build a scrubbed
+   committed equivalent or assert the specific XML in a unit test, and describe the private evidence
+   in the PR. Record the new facts in `docs/FORMAT.md`, then open the generated file in Desktop.
 
 ## Private material
 

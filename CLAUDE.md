@@ -9,11 +9,20 @@ before changing the compiler.
 
 - Done: M0 core (CSV + live Snowflake OAuth sources, calcs, marks/encodings, grid dashboards,
   `introspect`) and the dev process (PR #1: reviewer agent, CI, hooks, leak + golden checks).
-- **Next: M1 Filters.** Blocked on a Desktop reference. Ask the human to open the generated private
-  Snowflake example (`private/examples/snowflake-projections/`) in Desktop, add a boolean worksheet
-  filter (e.g. Recent Run = True), show it as a dashboard filter control, add the color legend, and
-  *Save As* `private/references/filters-legends/desktop-saved.twb`. Starting from our own output
-  means the diff isolates exactly what filters/legends add (legends are M2; same reference).
+- PR #2 (docs: this file, README spec reference, `docs/FORMAT.md` evidence log).
+- **Next, step 1: `fix/snowflake-remote-types`.** The compiler emits Snowflake metadata with
+  integer remote-type 20 and date 133, and no precision/scale. REF-SF shows integer 131 (precision 38,
+  scale 0), date 7, and real with precision 15 (`docs/FORMAT.md` → Data sources). Match REF-SF, add a
+  test, and have the human reopen the Snowflake example in Desktop.
+- **Next, step 2: M1 Filters.** Blocked on a Desktop reference. Ask the human to:
+  1. Open the generated private Snowflake example (`private/examples/snowflake-projections/`) in Desktop.
+  2. Create a boolean calc, e.g. Recent Run = `{ FIXED : MAX([RUN_TIMESTAMP]) } = [RUN_TIMESTAMP]`.
+  3. Use it as a worksheet filter (True).
+  4. Show it as a dashboard filter control, and add the color legend.
+  5. *Save As* `private/references/filters-legends/desktop-saved.twb`.
+
+  Starting from our own output means the diff isolates exactly what filters and legends add.
+  Legends are M2 but come from the same reference.
 - The human uses Tableau Desktop 2026.2.1 on macOS, Python 3.9, Snowflake with browser SSO.
 
 ## Workflow (mandatory)
