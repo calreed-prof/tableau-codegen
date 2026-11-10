@@ -1,0 +1,149 @@
+{
+  "datasources": {
+    "season": {
+      "snowflake": {
+        "server": "your_account.snowflakecomputing.com",
+        "warehouse": "YOUR_WAREHOUSE",
+        "database": "YOUR_DATABASE",
+        "schema": "YOUR_SCHEMA",
+        "table": "PROJECTION_SEASON",
+        "username": "YOUR_USERNAME",
+        "role": "",
+        "auth": "oauth"
+      },
+      "columns": {
+        "RUN_ID": "string",
+        "RUN_TIMESTAMP": "datetime",
+        "METRIC": "string",
+        "LEVEL": "string",
+        "LEVEL_ORDER": "integer",
+        "ENTITY": "string",
+        "PARENT_LEVEL": "string",
+        "PARENT_ENTITY": "string",
+        "PARTNERSHIP": "string",
+        "SENIOR_REGION": "string",
+        "REGION": "string",
+        "SENIOR_MGMT": "string",
+        "MGMT": "string",
+        "TEAM": "string",
+        "SALES_YEAR": {
+          "type": "integer",
+          "role": "dimension"
+        },
+        "WEEKS_OBSERVED": "integer",
+        "ACTUAL_TO_DATE": {
+          "type": "real",
+          "caption": "Actual To Last Refit"
+        },
+        "REMAINING_FORECAST": "real",
+        "SEASON_FORECAST": "real",
+        "SEASON_LOW": "real",
+        "SEASON_HIGH": "real",
+        "PRIOR_SEASON_ACTUAL": "real",
+        "PCT_VS_PRIOR_SEASON": "real",
+        "METHOD": "string",
+        "MODEL_STATUS": "string",
+        "EXPECTED_MISS_PCT": {
+          "type": "real",
+          "caption": "Expected Miss Pct Base"
+        },
+        "CONFIDENCE": "string",
+        "WARNING_FLAG": "boolean",
+        "WARNING_TEXT": "string",
+        "HAS_PRIOR_SEASON": "boolean"
+      },
+      "calcs": {
+        "Expected Miss Pct": {
+          "formula": "[EXPECTED_MISS_PCT] / 100",
+          "type": "real",
+          "role": "measure"
+        },
+        "Metric Label": {
+          "formula": "IF [METRIC] = 'FP_PLUS' THEN 'FP+' ELSE [METRIC] END",
+          "type": "string",
+          "role": "dimension"
+        }
+      }
+    },
+    "weekly": {
+      "snowflake": {
+        "server": "your_account.snowflakecomputing.com",
+        "warehouse": "YOUR_WAREHOUSE",
+        "database": "YOUR_DATABASE",
+        "schema": "YOUR_SCHEMA",
+        "table": "PROJECTION_WEEKLY",
+        "username": "YOUR_USERNAME",
+        "role": "",
+        "auth": "oauth"
+      },
+      "columns": {
+        "RUN_ID": "string",
+        "RUN_TIMESTAMP": "datetime",
+        "METRIC": "string",
+        "LEVEL": "string",
+        "LEVEL_ORDER": "integer",
+        "ENTITY": "string",
+        "PARTNERSHIP": "string",
+        "SENIOR_REGION": "string",
+        "REGION": "string",
+        "SENIOR_MGMT": "string",
+        "SALES_YEAR": {
+          "type": "integer",
+          "role": "dimension"
+        },
+        "SALES_YEAR_WEEK": {
+          "type": "integer",
+          "role": "dimension"
+        },
+        "WEEK_START": "date",
+        "SEASON": "string",
+        "FORECAST_VALUE": "real",
+        "LOW_VALUE": "real",
+        "HIGH_VALUE": "real",
+        "CUM_FORECAST": "real",
+        "CUM_LOW": "real",
+        "CUM_HIGH": "real",
+        "IS_FORECAST": "boolean"
+      }
+    }
+  },
+  "sheets": {
+    "Season Forecast by Level": {
+      "datasource": "season",
+      "cols": "Level",
+      "rows": "sum(Season Forecast)",
+      "color": "Metric Label",
+      "mark": "bar"
+    },
+    "Expected Miss by Level": {
+      "datasource": "season",
+      "cols": "Level",
+      "rows": "avg(Expected Miss Pct)",
+      "mark": "circle"
+    },
+    "Weekly Forecast": {
+      "datasource": "weekly",
+      "cols": "Sales Year Week",
+      "rows": "sum(Forecast Value)",
+      "color": "Metric",
+      "mark": "line"
+    }
+  },
+  "dashboards": {
+    "Projections (generated)": {
+      "size": [
+        1400,
+        900
+      ],
+      "layout": [
+        [
+          "Season Forecast by Level",
+          "Expected Miss by Level"
+        ],
+        [
+          "Weekly Forecast"
+        ]
+      ]
+    }
+  }
+}

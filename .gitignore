@@ -1,0 +1,8 @@
+*.twbr
+__pycache__/
+.DS_Store
+examples/**/*.twb
+out/
+
+# Real company workbooks/specs: never committed
+private/
