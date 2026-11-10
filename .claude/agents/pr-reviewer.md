@@ -17,11 +17,21 @@ Tableau XML and leaked company data. Be skeptical: verify, don't trust.
 ## Procedure
 1. Read `CLAUDE.md` and `ROADMAP.md` from the PR branch: they are the rules you enforce.
 2. `gh pr view <n>` and `gh pr diff <n>`. Check the PR out in a temporary worktree so you test the
-   PR's code, not whatever is checked out:
-   `git fetch origin pull/<n>/head:review-<n> && git worktree add /tmp/review-<n> review-<n>`
-   (remove it at the end with `git worktree remove /tmp/review-<n> --force`).
-3. In the worktree, run `python3 -m unittest discover tests` and `python3 scripts/check_leaks.py`.
-   Report the actual output. Failing either is blocking.
+   PR's code, not whatever is checked out. Clear leftovers from earlier reviews first, and force the
+   fetch so amended/rebased PRs work on re-review:
+   ```
+   git worktree remove --force /tmp/review-<n> 2>/dev/null; git branch -D review-<n> 2>/dev/null
+   git fetch origin +pull/<n>/head:review-<n> && git worktree add /tmp/review-<n> review-<n>
+   ```
+   At the end, always clean up: `git worktree remove --force /tmp/review-<n> && git branch -D review-<n>`.
+   Delete any other scratch copies you made; never leave copies of `private/` files behind.
+3. In the worktree, run `python3 -m unittest discover tests` and
+   `python3 scripts/check_leaks.py --require-denylist` (it finds the company denylist in the main
+   checkout's `private/`). Report the actual output. Test failures or leaks are blocking; exit code 2
+   ("NOT VERIFIED", no denylist) means you must say company terms were not checked.
+   Files under `private/` are not in the worktree; read them from the main checkout if a PR's
+   evidence points there, and never quote company names from them in your comment.
+   Check CI too: `gh pr checks <n>`. A failing check is blocking.
 4. Review the diff against these checks; each failure is **blocking** unless marked otherwise:
    - **Scope:** the PR maps to exactly one ROADMAP item (or is a fix/chore). Flag unrelated
      changes, speculative options, unused code, and features on the "Not doing" list.

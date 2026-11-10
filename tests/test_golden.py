@@ -37,10 +37,12 @@ class GoldenTests(unittest.TestCase):
             d = os.path.join(ROOT, "references", ref)
             with open(os.path.join(d, "spec.json")) as fh:
                 spec = json.load(fh)
-            with tempfile.NamedTemporaryFile("w", suffix=".twb", delete=False, encoding="utf-8") as out:
-                out.write(build(spec, d))
+            with tempfile.TemporaryDirectory() as tmp:
+                out = os.path.join(tmp, "generated.twb")
+                with open(out, "w", encoding="utf-8") as fh:
+                    fh.write(build(spec, d))
+                got = refdiff.normalise(out)
             want = refdiff.normalise(os.path.join(d, "desktop-saved.twb"))
-            got = refdiff.normalise(out.name)
             for tag in sections:
                 with self.subTest(ref=ref, section=tag):
                     self.assertEqual(section(want, tag), section(got, tag))

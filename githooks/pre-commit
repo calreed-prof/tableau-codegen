@@ -5,7 +5,7 @@ if [ "$branch" = "main" ]; then
   echo "pre-commit: don't commit on main. Create a branch: git checkout -b feat/<item>-<slug>" >&2
   exit 1
 fi
-python3 scripts/check_leaks.py --staged || exit 1
+python3 scripts/check_leaks.py --staged --require-denylist || exit 1
 python3 -m unittest discover -q tests >/dev/null 2>&1 || {
   echo "pre-commit: tests failing. Run: python3 -m unittest discover tests" >&2
   exit 1

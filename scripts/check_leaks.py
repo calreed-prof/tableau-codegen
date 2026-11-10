@@ -1,10 +1,15 @@
 """Fail if company or machine-specific data is about to be committed.
 
-  python3 scripts/check_leaks.py            # scan all tracked files (CI)
-  python3 scripts/check_leaks.py --staged   # scan staged content (pre-commit hook)
+  python3 scripts/check_leaks.py                      # scan all tracked files (CI: generic rules only)
+  python3 scripts/check_leaks.py --staged             # scan staged content (pre-commit hook)
+  python3 scripts/check_leaks.py --require-denylist   # fail unless the company denylist was loaded
+  python3 scripts/check_leaks.py --denylist PATH      # explicit denylist (or env TABGEN_DENYLIST)
 
 Generic rules live here. Company-specific words (employer, account, table names) go in
 private/denylist.txt, one regex per line; that file is git-ignored so the list never leaks.
+The denylist is found automatically in this checkout's private/ or, from a git worktree, in the
+main checkout's private/. CI has no denylist, so CI only enforces the generic rules; the
+pre-commit hook and the reviewer run with --require-denylist.
 """
 import os
 import re
@@ -27,9 +32,24 @@ def git(*args):
     return subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True, check=True).stdout
 
 
-def denylist():
-    path = os.path.join(ROOT, "private", "denylist.txt")
-    if not os.path.exists(path):
+def denylist_path(explicit=None):
+    """First existing candidate: --denylist, $TABGEN_DENYLIST, ./private, main checkout's private/."""
+    candidates = [explicit, os.environ.get("TABGEN_DENYLIST"), os.path.join(ROOT, "private", "denylist.txt")]
+    try:
+        common = git("rev-parse", "--path-format=absolute", "--git-common-dir").strip()
+        candidates.append(os.path.join(os.path.dirname(common), "private", "denylist.txt"))
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        pass
+    for path in candidates:
+        if path and os.path.isfile(path):
+            return path
+    if explicit:
+        raise SystemExit(f"Denylist not found: {explicit}")
+    return None
+
+
+def denylist(path):
+    if not path:
         return []
     with open(path, encoding="utf-8") as fh:
         return [re.compile(ln.strip(), re.I) for ln in fh if ln.strip() and not ln.startswith("#")]
@@ -51,8 +71,20 @@ def content(path, staged):
 
 
 def main():
-    staged = "--staged" in sys.argv
-    extra = denylist()
+    import argparse
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--staged", action="store_true", help="scan staged content instead of tracked files")
+    ap.add_argument("--denylist", help="path to the company denylist")
+    ap.add_argument("--require-denylist", action="store_true",
+                    help="fail if no denylist is found (otherwise company terms go unchecked)")
+    args = ap.parse_args()
+    staged = args.staged
+    dl_path = denylist_path(args.denylist)
+    if args.require_denylist and not dl_path:
+        print("Leak check NOT VERIFIED: no company denylist found (private/denylist.txt, "
+              "--denylist or $TABGEN_DENYLIST). Company terms were not checked.")
+        return 2
+    extra = denylist(dl_path)
     problems = []
     for f in files(staged):
         if f.startswith("private/"):
@@ -76,8 +108,12 @@ def main():
         print("Leak check FAILED:\n  " + "\n  ".join(problems))
         print("\nScrub these (see CLAUDE.md > Data hygiene) or move the file to private/.")
         return 1
-    print(f"Leak check passed ({'staged' if staged else 'tracked'} files"
-          f"{', with private denylist' if extra else ', no private denylist found'}).")
+    scope = "staged" if staged else "tracked"
+    if dl_path:
+        print(f"Leak check passed ({scope} files, generic rules + company denylist).")
+    else:
+        print(f"Leak check passed ({scope} files, generic rules only: NO company denylist, "
+              f"company terms not checked).")
     return 0
 
 

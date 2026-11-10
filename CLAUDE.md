@@ -9,7 +9,7 @@ Target: Tableau Desktop 2026.2.1, which writes `version='18.1'` + a feature-flag
 2. **One roadmap item per PR.** Name the item from `ROADMAP.md` in the PR. Unrelated refactors,
    "while I was here" changes, and features not on the roadmap go in a separate PR or nowhere.
 3. Open a PR with the template filled in. Run `python3 -m unittest discover tests` and
-   `python3 scripts/check_leaks.py` first; both must pass.
+   `python3 scripts/check_leaks.py --require-denylist` first; both must pass, and CI must be green.
 4. **Independent review.** Run the `pr-reviewer` agent on the PR (fresh context, not a fork of the
    authoring session). It posts `VERDICT: APPROVE` or `VERDICT: CHANGES REQUESTED`.
    Address every blocking item, push, and re-review until approved.
@@ -38,7 +38,10 @@ Tableau's real format is only partly documented, and the published XSD doesn't m
 - Committed examples use placeholders (`your_account.snowflakecomputing.com`, `YOUR_WAREHOUSE`).
 - New Desktop references: run `python3 scripts/refdiff.py clean <file>` and replace server,
   username, database, schema and table names before committing.
-- `scripts/check_leaks.py` (pre-commit hook and CI) must pass.
+- `scripts/check_leaks.py` must pass. CI checks generic rules only (it has no company denylist);
+  the pre-commit hook and the reviewer also check `private/denylist.txt` via `--require-denylist`.
+- The git hooks are local and opt-in (`git config core.hooksPath githooks`) and can be bypassed with
+  `--no-verify`; never bypass them. GitHub can't enforce review on this plan, so the rules rely on discipline.
 
 ## Commands
 
@@ -46,7 +49,7 @@ Tableau's real format is only partly documented, and the published XSD doesn't m
 python3 -m tabgen build <spec.json> [-o out.twb] [--open]
 python3 -m tabgen introspect <existing.twb>     # connections/columns/calcs -> spec JSON
 python3 -m unittest discover tests
-python3 scripts/check_leaks.py
+python3 scripts/check_leaks.py --require-denylist
 python3 scripts/refdiff.py diff <reference.twb> <generated.twb>
 git config core.hooksPath githooks              # once per clone
 ```

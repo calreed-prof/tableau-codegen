@@ -8,12 +8,15 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    # Python 3.9 matches the dev machine; current runner images no longer ship it via setup-python.
+    container: python:3.9-slim
     steps:
+      - name: Install git (leak check uses git ls-files)
+        run: apt-get update -qq && apt-get install -y -qq git >/dev/null
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.9"
+      - name: Trust workspace
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - name: Unit + golden tests
         run: python -m unittest discover -v tests
-      - name: Leak check
+      - name: Leak check (generic rules; company denylist is local-only)
         run: python scripts/check_leaks.py
