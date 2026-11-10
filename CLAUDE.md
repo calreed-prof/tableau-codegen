@@ -2,6 +2,19 @@
 
 Write Tableau dashboards as code: a spec compiles to a `.twb` that opens in Tableau Desktop.
 Target: Tableau Desktop 2026.2.1, which writes `version='18.1'` + a feature-flag manifest.
+Read `README.md` (spec + layout), `ROADMAP.md` (scope) and `docs/FORMAT.md` (verified format facts)
+before changing the compiler.
+
+## Current status (update this section in every PR that changes it)
+
+- Done: M0 core (CSV + live Snowflake OAuth sources, calcs, marks/encodings, grid dashboards,
+  `introspect`) and the dev process (PR #1: reviewer agent, CI, hooks, leak + golden checks).
+- **Next: M1 Filters.** Blocked on a Desktop reference. Ask the human to open the generated private
+  Snowflake example (`private/examples/snowflake-projections/`) in Desktop, add a boolean worksheet
+  filter (e.g. Recent Run = True), show it as a dashboard filter control, add the color legend, and
+  *Save As* `private/references/filters-legends/desktop-saved.twb`. Starting from our own output
+  means the diff isolates exactly what filters/legends add (legends are M2; same reference).
+- The human uses Tableau Desktop 2026.2.1 on macOS, Python 3.9, Snowflake with browser SSO.
 
 ## Workflow (mandatory)
 
@@ -11,8 +24,10 @@ Target: Tableau Desktop 2026.2.1, which writes `version='18.1'` + a feature-flag
 3. Open a PR with the template filled in. Run `python3 -m unittest discover tests` and
    `python3 scripts/check_leaks.py --require-denylist` first; both must pass, and CI must be green.
 4. **Independent review.** Run the `pr-reviewer` agent on the PR (fresh context, not a fork of the
-   authoring session). It posts `VERDICT: APPROVE` or `VERDICT: CHANGES REQUESTED`.
-   Address every blocking item, push, and re-review until approved.
+   authoring session). If the session didn't start in this repo, the agent type isn't registered:
+   spawn a fresh general-purpose agent told to follow `.claude/agents/pr-reviewer.md` for PR #n.
+   It posts `VERDICT: APPROVE` or `VERDICT: CHANGES REQUESTED`. Verify each blocking item yourself,
+   fix it, push, wait for green CI, and re-review with a **new** fresh agent until approved.
 5. **The human merges** (squash) after the approval *and* after confirming the generated workbook
    opens in Tableau Desktop when the PR changes generated XML. AI agents do not merge.
 
@@ -40,6 +55,9 @@ Tableau's real format is only partly documented, and the published XSD doesn't m
   username, database, schema and table names before committing.
 - `scripts/check_leaks.py` must pass. CI checks generic rules only (it has no company denylist);
   the pre-commit hook and the reviewer also check `private/denylist.txt` via `--require-denylist`.
+- This is the human's personal GitHub repo (owner `calreed-prof`). The `gh` CLI has more than one
+  account signed in: before any push, check `gh api user --jq .login` prints `calreed-prof`
+  (switch with `gh auth switch`).
 - The git hooks are local and opt-in (`git config core.hooksPath githooks`) and can be bypassed with
   `--no-verify`; never bypass them. GitHub can't enforce review on this plan, so the rules rely on discipline.
 
@@ -50,6 +68,7 @@ python3 -m tabgen build <spec.json> [-o out.twb] [--open]
 python3 -m tabgen introspect <existing.twb>     # connections/columns/calcs -> spec JSON
 python3 -m unittest discover tests
 python3 scripts/check_leaks.py --require-denylist
+python3 scripts/refdiff.py clean <desktop-saved.twb>   # strip fingerprints/thumbnails
 python3 scripts/refdiff.py diff <reference.twb> <generated.twb>
 git config core.hooksPath githooks              # once per clone
 ```

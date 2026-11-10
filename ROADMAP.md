@@ -8,9 +8,14 @@ Each item ships as its own PR, backed by a Desktop-saved reference. Done = merge
 ## Done
 - **M0 Core:** CSV and live Snowflake (OAuth) sources, bar/line/circle/etc. marks, color/size/label/
   detail/tooltip encodings, row-level vs aggregate calcs, grid dashboards, `introspect`.
+  Some emitted options are still unverified (see `docs/FORMAT.md`); they get evidence before features
+  build on them.
+- **Process (PR #1):** independent PR reviewer agent, CI on Python 3.9, git hooks, leak check,
+  golden tests.
 
 ## Next (in order)
 - **M1 Filters:** worksheet filters (categorical, boolean, top-N later) and dashboard filter controls.
+  Needs the Desktop reference described in `CLAUDE.md` → Current status.
 - **M2 Legends:** auto-add color/size legends to dashboards for sheets that use them.
 - **M3 Layout:** row heights / column widths, dashboard title, text boxes.
 - **M4 Parameters:** list parameters, parameter controls, calcs that reference parameters
