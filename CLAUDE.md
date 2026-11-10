@@ -10,11 +10,9 @@ before changing the compiler.
 - Done: M0 core (CSV + live Snowflake OAuth sources, calcs, marks/encodings, grid dashboards,
   `introspect`) and the dev process (PR #1: reviewer agent, CI, hooks, leak + golden checks).
 - PR #2 (docs: this file, README spec reference, `docs/FORMAT.md` evidence log).
-- **Next, step 1: `fix/snowflake-remote-types`.** The compiler emits Snowflake metadata with
-  integer remote-type 20 and date 133, and no precision/scale. REF-SF shows integer 131 (precision 38,
-  scale 0), date 7, and real with precision 15 (`docs/FORMAT.md` → Data sources). Match REF-SF, add a
-  test, and have the human reopen the Snowflake example in Desktop.
-- **Next, step 2: M1 Filters.** Blocked on a Desktop reference. Ask the human to:
+- `fix/snowflake-remote-types`: live Snowflake metadata now matches REF-SF (integer 131 +
+  precision 38/scale 0, date 7, real precision 15).
+- **Next: M1 Filters.** Blocked on a Desktop reference. Ask the human to:
   1. Open the generated private Snowflake example (`private/examples/snowflake-projections/`) in Desktop.
   2. Create a boolean calc, e.g. Recent Run = `{ FIXED : MAX([RUN_TIMESTAMP]) } = [RUN_TIMESTAMP]`.
   3. Use it as a worksheet filter (True).

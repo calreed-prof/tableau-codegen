@@ -101,6 +101,29 @@ class SnowflakeTests(unittest.TestCase):
         self.assertIn("[usr:Calculation_", self.compile({"rows": "Margin"}).find(".//rows").text)
         self.assertIn("[sum:Calculation_", self.compile({"rows": "Sales K"}).find(".//rows").text)
 
+    def test_metadata_records_match_desktop_reference(self):
+        # Values and child order from a Desktop 2026.2.1 save of a live Snowflake table (REF-SF in
+        # docs/FORMAT.md; the workbook is private, so the expected values are written out here).
+        s = {"datasources": {"sf": dict(SNOWFLAKE, columns={
+            "S": "string", "R": "real", "I": "integer", "D": "date", "T": "datetime", "B": "boolean"})},
+            "sheets": {"X": {"rows": "sum(R)"}}}
+        wb = ET.fromstring(build(s, EXAMPLE))
+        recs = {m.findtext("remote-name"): m for m in wb.iter("metadata-record") if m.get("class") == "column"}
+        expected = {
+            "S": ("129", [("width", "8000"), ("contains-null", "true"), ("collation", None)]),
+            "R": ("5", [("precision", "15"), ("contains-null", "true")]),
+            "I": ("131", [("precision", "38"), ("scale", "0"), ("contains-null", "true")]),
+            "D": ("7", [("contains-null", "true")]),
+            "T": ("7", [("contains-null", "true")]),
+            "B": ("11", [("contains-null", "true")]),
+        }
+        for name, (remote_type, after_agg) in expected.items():
+            mr = recs[name]
+            self.assertEqual(mr.findtext("remote-type"), remote_type, name)
+            tags = [c.tag for c in mr]
+            tail = [(c.tag, c.text) for c in mr][tags.index("aggregation") + 1:tags.index("object-id")]
+            self.assertEqual([(t, v if t != "collation" else None) for t, v in tail], after_agg, name)
+
     def test_missing_columns_errors(self):
         bad = {"snowflake": SNOWFLAKE["snowflake"]}
         with self.assertRaises(SystemExit) as cm:

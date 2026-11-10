@@ -104,9 +104,13 @@ Live metadata remote-types in REF-SF:
 
 (REF-SF's *extract* metadata uses different codes. Don't confuse the two.)
 
+The compiler emits exactly these, with precision/scale placed after `<aggregation>` as in REF-SF
+(`tests/test_compiler.py` → `test_metadata_records_match_desktop_reference`). Before
+`fix/snowflake-remote-types` it wrote integer 20 / date 133 with no precision, and Desktop still
+opened it (OPEN-SF).
+
 | Unverified / known mismatch | Notes |
 |---|---|
-| **The compiler emits Snowflake integer = 20 and date = 133, and no precision/scale.** REF-SF shows 131 (precision 38, scale 0), 7, and precision 15 on reals | Generated workbooks still opened (OPEN-SF), presumably because Desktop refreshes live metadata. Fix tracked in `CLAUDE.md` → Current status |
 | `auth` other than `oauth`/`sso`/`browser` | `password` → `authentication="Username Password"` is a guess. Any other value is written into `authentication=` verbatim, with no error. Every non-oauth value omits `oauth-config-id` |
 | Extracts (`<extract>` + `.hyper`) | Seen in REF-SF but not emitted |
 

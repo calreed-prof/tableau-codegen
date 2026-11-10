@@ -12,9 +12,9 @@ Each item ships as its own PR, backed by a Desktop-saved reference. Done = merge
   build on them.
 - **Process (PR #1):** independent PR reviewer agent, CI on Python 3.9, git hooks, leak check,
   golden tests.
+- **Fix: Snowflake metadata remote-types** match the Desktop reference (see `docs/FORMAT.md`).
 
 ## Next (in order)
-- **Fix: Snowflake metadata remote-types** to match the Desktop reference (see `docs/FORMAT.md`).
 - **M1 Filters:** worksheet filters (categorical, boolean, top-N later) and dashboard filter controls.
   Needs the Desktop reference described in `CLAUDE.md` → Current status.
 - **M2 Legends:** auto-add color/size legends to dashboards for sheets that use them.

@@ -255,7 +255,9 @@ class CsvSource(DataSource):
 
 class SnowflakeSource(DataSource):
     """Live Snowflake table. Connection attributes mirror references/snowflake-basic."""
-    REMOTE_TYPE = {"string": 129, "date": 133, "datetime": 7, "real": 5, "integer": 20, "boolean": 11}
+    # Live metadata as saved by Desktop (REF-SF, docs/FORMAT.md). Extract metadata uses other codes.
+    REMOTE_TYPE = {"string": 129, "date": 7, "datetime": 7, "real": 5, "integer": 131, "boolean": 11}
+    PRECISION = {"real": ("15", None), "integer": ("38", "0")}  # (precision, scale), REF-SF
     AUTH = {"oauth": "oauth", "sso": "oauth", "browser": "oauth", "password": "Username Password"}
 
     def __init__(self, key, spec):
@@ -312,6 +314,11 @@ class SnowflakeSource(DataSource):
             sub(mr, "ordinal", str(c["ordinal"]))
             sub(mr, "local-type", c["datatype"])
             sub(mr, "aggregation", DEFAULT_AGG[c["datatype"]])
+            if c["datatype"] in self.PRECISION:
+                precision, scale = self.PRECISION[c["datatype"]]
+                sub(mr, "precision", precision)
+                if scale is not None:
+                    sub(mr, "scale", scale)
             if c["datatype"] == "string":
                 sub(mr, "width", "8000")
             sub(mr, "contains-null", "true")
