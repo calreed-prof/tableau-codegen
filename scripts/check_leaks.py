@@ -32,27 +32,47 @@ def git(*args):
     return subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True, check=True).stdout
 
 
+class LeakCheckError(SystemExit):
+    """Configuration problem: exits with status 2 ("not verified"), never a silent pass."""
+
+    def __init__(self, msg):
+        print(f"Leak check NOT VERIFIED: {msg}", file=sys.stderr)
+        super().__init__(2)
+
+
 def denylist_path(explicit=None):
-    """First existing candidate: --denylist, $TABGEN_DENYLIST, ./private, main checkout's private/."""
-    candidates = [explicit, os.environ.get("TABGEN_DENYLIST"), os.path.join(ROOT, "private", "denylist.txt")]
+    """An explicit path (--denylist, else $TABGEN_DENYLIST) must exist: no fallback.
+    Otherwise use ./private/denylist.txt, then the main checkout's (for git worktrees)."""
+    explicit = explicit or os.environ.get("TABGEN_DENYLIST")
+    if explicit:
+        if not os.path.isfile(explicit):
+            raise LeakCheckError(f"denylist not found: {explicit}")
+        return explicit
+    candidates = [os.path.join(ROOT, "private", "denylist.txt")]
     try:
         common = git("rev-parse", "--path-format=absolute", "--git-common-dir").strip()
         candidates.append(os.path.join(os.path.dirname(common), "private", "denylist.txt"))
     except (subprocess.CalledProcessError, FileNotFoundError):
         pass
-    for path in candidates:
-        if path and os.path.isfile(path):
-            return path
-    if explicit:
-        raise SystemExit(f"Denylist not found: {explicit}")
-    return None
+    return next((p for p in candidates if os.path.isfile(p)), None)
 
 
 def denylist(path):
     if not path:
         return []
+    patterns = []
     with open(path, encoding="utf-8") as fh:
-        return [re.compile(ln.strip(), re.I) for ln in fh if ln.strip() and not ln.startswith("#")]
+        for lineno, raw in enumerate(fh, 1):
+            line = raw.strip()
+            if not line or line.startswith("#"):
+                continue
+            try:
+                patterns.append(re.compile(line, re.I))
+            except re.error as e:
+                raise LeakCheckError(f"{path}:{lineno}: invalid regex ({e})")
+    if not patterns:
+        raise LeakCheckError(f"{path} has no patterns (only comments/blank lines)")
+    return patterns
 
 
 def files(staged):
@@ -66,7 +86,10 @@ def files(staged):
 def content(path, staged):
     if staged:
         return subprocess.run(["git", "show", f":{path}"], cwd=ROOT, capture_output=True).stdout
-    with open(os.path.join(ROOT, path), "rb") as fh:
+    full = os.path.join(ROOT, path)
+    if not os.path.exists(full):
+        return b""  # tracked but deleted on disk: nothing to leak
+    with open(full, "rb") as fh:
         return fh.read()
 
 

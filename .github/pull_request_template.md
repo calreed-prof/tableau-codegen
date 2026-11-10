@@ -10,7 +10,7 @@
 
 ## Verification
 - [ ] `python3 -m unittest discover tests` passes
-- [ ] `python3 scripts/check_leaks.py` passes
+- [ ] `python3 scripts/check_leaks.py --require-denylist` passes (CI runs generic rules only)
 - [ ] Generated workbook opened in Tableau Desktop 2026.2.1 and looked right (human, if emitted XML changed)
 - [ ] README updated if the spec changed
 
