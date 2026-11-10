@@ -91,6 +91,8 @@ The filtered field also gets a `<column>` + `<column-instance>` in the sheet's d
 | Unverified / not emitted | Notes |
 |---|---|
 | `member='false'`, string members, multi-member lists (`function='union'`?), ranges, top-N, context filters | No reference yet: the spec rejects them. REF-SF has examples of some, but they're on parameter-driven fields |
+| Filter controls from more than one data source on one dashboard (we write one `<datasource-dependencies>` per source) | REF-FILTERS has one source only |
+| Calc inputs that are themselves calcs: we list direct references only, not their inputs | REF-FILTERS's calcs only name database columns |
 | Desktop also wrote `<viewpoint><highlight><color-one-way><field>` (the filter field) in the sheet's window | Optional per OPEN-CSV/OPEN-SF; omitted |
 
 ## Data sources
