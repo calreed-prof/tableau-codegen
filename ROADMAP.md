@@ -15,8 +15,9 @@ Each item ships as its own PR, backed by a Desktop-saved reference. Done = merge
 - **Fix: Snowflake metadata remote-types** match the Desktop reference (see `docs/FORMAT.md`).
 
 ## Next (in order)
-- **M1 Filters:** worksheet filters (categorical, boolean, top-N later) and dashboard filter controls.
-  Needs the Desktop reference described in `CLAUDE.md` → Current status.
+- **M1 Filters:** worksheet filters and dashboard filter controls. Part 1 (boolean `true`, from
+  REF-FILTERS) is in `feat/m1-filters`; categorical member lists need one more reference (see
+  `CLAUDE.md` → Current status); top-N later.
 - **M2 Legends:** auto-add color/size legends to dashboards for sheets that use them.
 - **M3 Layout:** row heights / column widths, dashboard title, text boxes.
 - **M4 Parameters:** list parameters, parameter controls, calcs that reference parameters

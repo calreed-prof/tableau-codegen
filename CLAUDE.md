@@ -12,15 +12,12 @@ before changing the compiler.
 - PR #2 (docs: this file, README spec reference, `docs/FORMAT.md` evidence log).
 - `fix/snowflake-remote-types`: live Snowflake metadata now matches REF-SF (integer 131 +
   precision 38/scale 0, date 7, real precision 15).
-- **Next: M1 Filters.** Blocked on a Desktop reference. Ask the human to:
-  1. Open the generated private Snowflake example (`private/examples/snowflake-projections/`) in Desktop.
-  2. Create a boolean calc, e.g. Recent Run = `{ FIXED : MAX([RUN_TIMESTAMP]) } = [RUN_TIMESTAMP]`.
-  3. Use it as a worksheet filter (True).
-  4. Show it as a dashboard filter control, and add the color legend.
-  5. *Save As* `private/references/filters-legends/desktop-saved.twb`.
-
-  Starting from our own output means the diff isolates exactly what filters and legends add.
-  Legends are M2 but come from the same reference.
+- `feat/m1-filters` (M1, part 1): boolean worksheet filters (`true`) + dashboard filter controls,
+  from REF-FILTERS (`private/references/filters-legends/`, see `docs/FORMAT.md`).
+- **Next: M2 Legends.** REF-FILTERS already shows a color legend zone; no new reference needed.
+- **M1 part 2 (categorical member filters)** needs a reference: in the same workbook, filter a
+  string field to two values on one sheet, show its control, and save as
+  `private/references/filters-categorical/desktop-saved.twb`.
 - The human uses Tableau Desktop 2026.2.1 on macOS, Python 3.9, Snowflake with browser SSO.
 
 ## Workflow (mandatory)
