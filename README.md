@@ -42,14 +42,18 @@ private/                git-ignored: real company workbooks, specs, denylist
       "columns": { "REGION": "string", "SALES_AMT": "real",
                    "FISCAL_YEAR": { "type": "integer", "role": "dimension" },
                    "ORDER_TS": { "type": "datetime", "caption": "Order Time" } },
-      "calcs": { "Sales K": { "formula": "[SALES_AMT] / 1000", "type": "real", "role": "measure" } }
+      "calcs": { "Sales K": { "formula": "[SALES_AMT] / 1000", "type": "real", "role": "measure" },
+                 "Recent": { "formula": "{ FIXED : MAX([ORDER_TS]) } = [ORDER_TS]", "type": "boolean" } }
     }
   },
   "sheets": {
     "Sales by Region": { "datasource": "sales", "cols": "Region", "rows": "sum(Sales)",
-                         "color": "Category", "mark": "bar" }
+                         "color": "Category", "mark": "bar" },
+    "Orders": { "datasource": "orders", "cols": "Region", "rows": "sum(Sales Amt)",
+                "filters": { "Recent": true } }
   },
-  "dashboards": { "Overview": { "size": [1200, 800], "layout": [["Sales by Region"]] } }
+  "dashboards": { "Overview": { "size": [1200, 800], "layout": [["Sales by Region", "Orders"]],
+                                "filters": [{ "sheet": "Orders", "field": "Recent" }] } }
 }
 ```
 
@@ -78,6 +82,9 @@ private/                git-ignored: real company workbooks, specs, denylist
   - `rows`, `cols`: a field or a list of fields
   - `mark`: default `automatic`
   - encodings `color`, `size`, `label`, `detail`, `tooltip`: one field each
+  - `filters`: `field -> value`. So far only a boolean field (usually a boolean calc) kept to
+    `true` is supported, e.g. `{"Recent": true}`; anything else is a `SpecError` until there's a
+    Desktop reference for it.
 - Fields can be referenced by raw name or caption (`SALES_AMT` or `Sales Amt`), optionally wrapped
   in:
   - aggregations: `sum avg min max count countd`
@@ -103,6 +110,9 @@ private/                git-ignored: real company workbooks, specs, denylist
 - `size` is `[width, height]` in px. Default `[1200, 800]`.
 - `layout` is a list of rows, each a list of sheet names. Rows split the height equally, and sheets
   split each row's width equally.
+- `filters` (optional): filter controls, `[{"sheet": ..., "field": ...}]`. The sheet must be in the
+  layout and already filter on that field. Controls stack in a fixed 160px column on the right, as
+  Desktop places them.
 
 Common mistakes stop the build with a clear message instead of producing a broken workbook:
 - an unknown field, sheet, data source, mark, aggregation or column type
@@ -113,7 +123,8 @@ Validation is not complete yet: some malformed specs crash with a Python traceba
 
 ## Known limitations (see ROADMAP.md)
 
-- No filters, legends, parameters, titles/text boxes, sorting or number formatting yet.
+- Filters: boolean `true` only (no categorical member lists, ranges or top-N yet).
+- No legends, parameters, titles/text boxes, sorting or number formatting yet.
 - Layout is equal-split only; long axis labels can be clipped.
 - Live connections only (no extracts / `.twbx`).
 

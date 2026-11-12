@@ -149,6 +149,16 @@ class DataSource:
         return f"[{self.name}].{inst}", {"column": f"[{c['name']}]", "derivation": AGG[agg],
                                           "name": inst, "pivot": "key", "type": typ}
 
+    def calc_inputs(self, c):
+        """Columns a calc's formula names directly ([X] by internal name or caption). Desktop lists
+        them in a sheet's datasource-dependencies (REF-FILTERS)."""
+        found = []
+        for token in re.findall(r"\[([^\[\]]+)\]", c.get("formula", "")):
+            name = self.lookup.get(token)
+            if name and name != c["name"] and self.columns[name] not in found:
+                found.append(self.columns[name])
+        return found
+
     def column_xml(self, parent, c):
         el = sub(parent, "column", caption=c.get("caption"), datatype=c["datatype"],
                  name=f"[{c['name']}]", role=c["role"], type=c["type"])
@@ -365,6 +375,23 @@ def parse_field(s):
 
 
 # ---------------------------------------------------------------- worksheets
+def sheet_filters(sheet, spec, ds):
+    """Validate a sheet's "filters" map; return [(field, column-instance name)].
+    Only boolean fields kept to True are backed by a Desktop reference so far (REF-FILTERS)."""
+    filters = spec.get("filters", {})
+    if not isinstance(filters, dict):
+        raise SpecError(f"Sheet {sheet!r}: 'filters' must be a map of field -> value, "
+                        f"e.g. {{\"Recent Run\": true}}")
+    out = []
+    for field, value in filters.items():
+        c = ds.col(field)
+        if c["datatype"] != "boolean" or value is not True:
+            raise SpecError(f"Sheet {sheet!r}: filter on {field!r} must be a boolean field kept to true "
+                            f"(other filter kinds aren't supported yet)")
+        out.append((field, ds.ref(field, "none")[1]["name"]))
+    return out
+
+
 def worksheet_xml(parent, name, spec, ds):
     ws = sub(parent, "worksheet", name=name)
     table = sub(ws, "table")
@@ -388,14 +415,27 @@ def worksheet_xml(parent, name, spec, ds):
     rows = shelf(spec.get("rows", []))
     cols = shelf(spec.get("cols", []))
     enc = {k: use(spec[k]) for k in ("color", "size", "label", "detail", "tooltip") if k in spec}
+    filters = [(use(f), inst_name) for f, inst_name in sheet_filters(name, spec, ds)]
 
-    seen = set()
-    for col, _ in sorted(used.values(), key=lambda x: x[0]["name"]):
-        if col["name"] not in seen:
-            seen.add(col["name"])
-            ds.column_xml(deps, col)
+    # Columns: every field used, plus the columns a used calc names (no column-instance for those).
+    dep_cols = {}
+    for col, _ in used.values():
+        dep_cols[col["name"]] = col
+        for inp in ds.calc_inputs(col):
+            dep_cols.setdefault(inp["name"], inp)
+    for cname in sorted(dep_cols):
+        ds.column_xml(deps, dep_cols[cname])
     for _, inst in sorted(used.values(), key=lambda x: x[1]["name"]):
         sub(deps, "column-instance", **inst)
+    for ref, level in filters:
+        f = sub(view, "filter", **{"class": "categorical", "column": ref})
+        sub(f, "groupfilter", **{"function": "member", "level": level, "member": "true",
+                                 "user:ui-domain": "database", "user:ui-enumeration": "inclusive",
+                                 "user:ui-marker": "enumerate"})
+    if filters:
+        slices = sub(view, "slices")
+        for ref, _ in filters:
+            sub(slices, "column", ref)
     sub(view, "aggregation", value="true")
 
     sub(table, "style")
@@ -416,24 +456,81 @@ def worksheet_xml(parent, name, spec, ds):
 
 
 # ---------------------------------------------------------------- dashboards
-def dashboard_xml(parent, name, spec, ids):
+SIDE_PX = 160         # Desktop's fixed-width column for filter controls/legends (REF-FILTERS)
+FILTER_CARD_PX = 89   # height Desktop gave a boolean filter control (REF-FILTERS)
+
+
+def dashboard_controls(name, spec, sheets, sheet_source):
+    """Validate a dashboard's "filters" list; return [(sheet, data source, field)]."""
+    controls = spec.get("filters", [])
+    if not isinstance(controls, list):
+        raise SpecError(f"Dashboard {name!r}: 'filters' must be a list of {{\"sheet\": ..., \"field\": ...}}")
+    placed = {s for row in spec["layout"] for s in row}
+    out = []
+    for ctl in controls:
+        if not isinstance(ctl, dict) or set(ctl) != {"sheet", "field"}:
+            raise SpecError(f"Dashboard {name!r}: each filter control needs exactly 'sheet' and 'field'")
+        sheet, field = ctl["sheet"], ctl["field"]
+        if sheet not in placed:
+            raise SpecError(f"Dashboard {name!r}: filter control sheet {sheet!r} is not in its layout")
+        if field not in sheets[sheet].get("filters", {}):
+            raise SpecError(f"Dashboard {name!r}: sheet {sheet!r} has no filter on {field!r} "
+                            f"(add it to the sheet's 'filters' first)")
+        out.append((sheet, sheet_source(sheet), field))
+    return out
+
+
+def dashboard_xml(parent, name, spec, ids, controls=()):
     W, H = spec.get("size", [1200, 800])
     db = sub(parent, "dashboard", enable_sort_zone_taborder="true", name=name)
     sub(db, "style")
     sub(db, "size", maxheight=H, maxwidth=W, minheight=H, minwidth=W)
+    if controls:
+        # Desktop lists the filtered fields (column + instance only, not calc inputs) on the dashboard.
+        by_ds = {}
+        for _, ds, field in controls:
+            fields = by_ds.setdefault(ds.name, (ds, []))[1]
+            if field not in fields:
+                fields.append(field)
+        dss = sub(db, "datasources")
+        for ds, _ in by_ds.values():
+            sub(dss, "datasource", caption=ds.caption, name=ds.name)
+        for ds, fields in by_ds.values():
+            deps = sub(db, "datasource-dependencies", datasource=ds.name)
+            cols = sorted({ds.col(f)["name"]: ds.col(f) for f in fields}.items())
+            for _, c in cols:
+                ds.column_xml(deps, c)
+            for inst in sorted((ds.ref(f, "none")[1] for f in fields), key=lambda i: i["name"]):
+                sub(deps, "column-instance", **inst)
     zones = sub(db, "zones")
     grid = spec["layout"]
     # Zone coordinates are in 1/100000ths of the dashboard; outer padding as Desktop does.
     X0, Y0, IW, IH = 800, 1000, 98400, 98000
     root = sub(zones, "zone", h=100000, id=next(ids), type_v2="layout-basic", w=100000, x=0, y=0)
-    vert = sub(root, "zone", h=IH, id=next(ids), param="vert", type_v2="layout-flow", w=IW, x=X0, y=Y0)
+    side_w = round(SIDE_PX * 100000 / W) if controls else 0
+    GW = IW - side_w
+    if controls:
+        # Grid and a fixed-width side column, side by side (REF-FILTERS).
+        outer = sub(root, "zone", h=IH, id=next(ids), param="horz", type_v2="layout-flow", w=IW, x=X0, y=Y0)
+    else:
+        outer = root
+    vert = sub(outer, "zone", h=IH, id=next(ids), param="vert", type_v2="layout-flow", w=GW, x=X0, y=Y0)
     rh = IH // len(grid)
     for r, row in enumerate(grid):
         y = Y0 + r * rh
-        horz = sub(vert, "zone", h=rh, id=next(ids), param="horz", type_v2="layout-flow", w=IW, x=X0, y=y)
-        cw = IW // len(row)
+        horz = sub(vert, "zone", h=rh, id=next(ids), param="horz", type_v2="layout-flow", w=GW, x=X0, y=y)
+        cw = GW // len(row)
         for c, sheet in enumerate(row):
             z = sub(horz, "zone", h=rh, id=next(ids), name=sheet, w=cw, x=X0 + c * cw, y=y)
+            zone_style(z, "4")
+    if controls:
+        sx = X0 + GW
+        side = sub(outer, "zone", fixed_size=SIDE_PX, h=IH, id=next(ids), is_fixed="true", param="vert",
+                   type_v2="layout-flow", w=side_w, x=sx, y=Y0)
+        fh = round(FILTER_CARD_PX * 100000 / H)
+        for i, (sheet, ds, field) in enumerate(controls):
+            z = sub(side, "zone", h=fh, id=next(ids), name=sheet, param=ds.ref(field, "none")[0],
+                    type_v2="filter", values="database", w=side_w, x=sx, y=Y0 + i * fh)
             zone_style(z, "4")
     zone_style(root, "8")
     sub(db, "simple-id", uuid=guid("db" + name))
@@ -478,12 +575,16 @@ def build(spec, base_dir):
         ds.to_xml(dsx)
 
     default_ds = next(iter(sources.values()))
-    wss = sub(wb, "worksheets")
-    for name, ws in spec["sheets"].items():
-        key = ws.get("datasource")
+
+    def sheet_source(name):
+        key = spec["sheets"][name].get("datasource")
         if key is not None and key not in sources:
             raise SpecError(f"Sheet {name!r} uses unknown data source {key!r}")
-        worksheet_xml(wss, name, ws, sources[key] if key else default_ds)
+        return sources[key] if key else default_ds
+
+    wss = sub(wb, "worksheets")
+    for name, ws in spec["sheets"].items():
+        worksheet_xml(wss, name, ws, sheet_source(name))
 
     dashboards = spec.get("dashboards", {})
     if dashboards:
@@ -494,7 +595,7 @@ def build(spec, base_dir):
                 for s in row:
                     if s not in spec["sheets"]:
                         raise SpecError(f"Dashboard {name!r} references unknown sheet {s!r}")
-            dashboard_xml(dbs, name, d, ids)
+            dashboard_xml(dbs, name, d, ids, dashboard_controls(name, d, spec["sheets"], sheet_source))
 
     windows_xml(wb, list(spec["sheets"]), dashboards)
     ET.indent(wb, space="  ")

@@ -13,6 +13,12 @@ Evidence keys:
 - **REF-SF**: Desktop 2026.2.1 workbook with two live Snowflake tables (with extracts), parameters,
   filters and LOD calcs. Company data, so it lives at `private/references/snowflake-basic/Book1.twb`
   and is not committed. Saved before the `desktop-saved.twb` naming convention existed.
+- **REF-FILTERS**: Desktop 2026.2.1 save of our generated private Snowflake example after adding,
+  by hand, a boolean LOD calc (`{ FIXED : MAX([RUN_TIMESTAMP]) } = [RUN_TIMESTAMP]`), a worksheet
+  filter keeping it to True, its dashboard filter control and a color legend (2026-11-10). Company
+  data, so it lives at `private/references/filters-legends/desktop-saved.twb` (next to the `spec.twb`
+  it started from, and a `spec.json` that rebuilds it). Diffing against our own output isolates what
+  filters and legends add.
 - **OPEN-CSV** / **OPEN-SF**: `examples/superstore-mini` and the private Snowflake example were
   generated and opened in Desktop 2026.2.1 by the human, rendering correctly (2026-11-10). Not
   machine-checkable: it's a recorded human observation.
@@ -61,7 +67,33 @@ Each used field also appears in the worksheet's `<datasource-dependencies>` as a
 |---|---|
 | `<column caption= datatype= name="[Calculation_<digits>]" role= type=><calculation class="tableau" formula=/></column>` | REF-SF, OPEN-CSV |
 | Row-level measures (e.g. `[X] / 100`) go on shelves with a normal aggregation (`avg:Calculation_...`); aggregate calcs (`SUM(..)/SUM(..)`) use `usr:` | OPEN-SF, OPEN-CSV |
+| A sheet's `<datasource-dependencies>` also lists the columns a used calc names (e.g. `[METRIC]` for `IF [METRIC] = ...`), as `<column>` only, with no `<column-instance>`; all columns sorted by name | REF-FILTERS (two sheets) |
+| Boolean calc: `datatype="boolean" role="dimension" type="nominal"`, on shelves/filters as `[none:Calculation_...:nk]` | REF-FILTERS |
 | Calcs that reference `[Parameters].[...]` need the Parameters datasource (not supported yet; `introspect` drops them) | REF-SF |
+
+## Filters
+
+Worksheet filter keeping a boolean field to True (REF-FILTERS), inside the sheet's `<view>` after
+`<datasource-dependencies>` and before `<aggregation>`:
+
+```xml
+<filter class='categorical' column='[federated.X].[none:Calculation_N:nk]'>
+  <groupfilter function='member' level='[none:Calculation_N:nk]' member='true'
+               user:ui-domain='database' user:ui-enumeration='inclusive' user:ui-marker='enumerate' />
+</filter>
+<slices>
+  <column>[federated.X].[none:Calculation_N:nk]</column>
+</slices>
+```
+
+The filtered field also gets a `<column>` + `<column-instance>` in the sheet's dependencies.
+
+| Unverified / not emitted | Notes |
+|---|---|
+| `member='false'`, string members, multi-member lists (`function='union'`?), ranges, top-N, context filters | No reference yet: the spec rejects them. REF-SF has examples of some, but they're on parameter-driven fields |
+| Filter controls from more than one data source on one dashboard (we write one `<datasource-dependencies>` per source) | REF-FILTERS has one source only |
+| Calc inputs that are themselves calcs: we list direct references only, not their inputs | REF-FILTERS's calcs only name database columns |
+| Desktop also wrote `<viewpoint><highlight><color-one-way><field>` (the filter field) in the sheet's window | Optional per OPEN-CSV/OPEN-SF; omitted |
 
 ## Data sources
 
@@ -123,4 +155,8 @@ opened it (OPEN-SF).
 | Nested `layout-flow` zones: `param="vert"` | REF-CSV (phone layout), REF-SF |
 | `param="horz"` | REF-SF |
 | Our grid nests horz rows inside a vert container | OPEN-CSV, OPEN-SF |
+| Filter controls: Desktop wraps the grid in a `horz` `layout-flow` zone, next to a fixed side column `<zone fixed-size='160' is-fixed='true' param='vert' type-v2='layout-flow' w=160px>` | REF-FILTERS |
+| Filter control zone: `<zone name=<sheet> param=<filter field ref> type-v2='filter' values='database'>`, margin 4, h = 89px for a boolean | REF-FILTERS |
+| A dashboard with a filter control gets `<datasources>` and a `<datasource-dependencies>` (filter field's column + column-instance only, not calc inputs) between `<size>` and `<zones>` | REF-FILTERS |
+| Color legend (M2, not emitted yet): `<zone name=<sheet> pane-specification-id='0' param=<color field ref> type-v2='color'>`, h = 66px, in the same side column below the filter | REF-FILTERS |
 | Worksheet windows need `<cards>` (left: pages/filters/marks; top: columns/rows/title); dashboard windows need `<viewpoints>`, `<active>` | REF-CSV, OPEN-CSV |

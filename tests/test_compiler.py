@@ -124,6 +124,86 @@ class SnowflakeTests(unittest.TestCase):
             tail = [(c.tag, c.text) for c in mr][tags.index("aggregation") + 1:tags.index("object-id")]
             self.assertEqual([(t, v if t != "collation" else None) for t, v in tail], after_agg, name)
 
+    # ---- M1 filters: expected XML from a Desktop 2026.2.1 save (REF-FILTERS in docs/FORMAT.md; private)
+    def filtered(self, dash_filters=None, sheet_filters=None):
+        sf = dict(SNOWFLAKE, calcs=dict(SNOWFLAKE["calcs"], **{
+            "Recent": {"formula": "{ FIXED : MAX([ORDER_TS]) } = [ORDER_TS]", "type": "boolean"}}))
+        s = {"datasources": {"sf": sf},
+             "sheets": {"S": {"cols": "Region", "rows": "sum(Sales Amt)",
+                              "filters": {"Recent": True} if sheet_filters is None else sheet_filters}},
+             "dashboards": {"D": {"size": [1400, 900], "layout": [["S"]],
+                                  "filters": [{"sheet": "S", "field": "Recent"}]
+                                  if dash_filters is None else dash_filters}}}
+        return ET.fromstring(build(s, EXAMPLE))
+
+    def test_boolean_filter_on_worksheet(self):
+        wb = self.filtered()
+        view = wb.find(".//worksheet/table/view")
+        ref = view.find("filter").get("column")
+        self.assertRegex(ref, r"^\[federated\.\w+\]\.\[none:Calculation_\d+:nk\]$")
+        self.assertEqual(view.find("filter").get("class"), "categorical")
+        g = view.find("filter/groupfilter")
+        U = "{http://www.tableausoftware.com/xml/user}"
+        self.assertEqual(dict(g.attrib), {
+            "function": "member", "level": ref[ref.index("].[") + 2:], "member": "true",
+            U + "ui-domain": "database", U + "ui-enumeration": "inclusive", U + "ui-marker": "enumerate"})
+        self.assertEqual([c.text for c in view.find("slices")], [ref])
+        # Desktop's order inside <view>: datasources, dependencies, filter, slices, aggregation.
+        self.assertEqual([c.tag for c in view],
+                         ["datasources", "datasource-dependencies", "filter", "slices", "aggregation"])
+
+    def test_calc_inputs_listed_in_dependencies(self):
+        deps = self.filtered().find(".//worksheet//datasource-dependencies")
+        cols = [c.get("name") for c in deps.findall("column")]
+        insts = [c.get("name") for c in deps.findall("column-instance")]
+        self.assertIn("[ORDER_TS]", cols)  # named by the Recent calc; not on any shelf
+        self.assertFalse(any("ORDER_TS" in i for i in insts))
+        self.assertEqual(cols, sorted(cols))
+
+    def test_no_filters_no_slices(self):
+        view = self.filtered(dash_filters=[], sheet_filters={}).find(".//worksheet/table/view")
+        self.assertIsNone(view.find("filter"))
+        self.assertIsNone(view.find("slices"))
+
+    def test_dashboard_filter_control(self):
+        db = self.filtered().find(".//dashboard")
+        self.assertEqual([c.tag for c in db][:5],
+                         ["style", "size", "datasources", "datasource-dependencies", "zones"])
+        deps = db.find("datasource-dependencies")
+        self.assertEqual([c.get("caption") for c in deps.findall("column")], ["Recent"])
+        self.assertEqual(len(deps.findall("column-instance")), 1)
+        outer = db.find("zones/zone/zone")
+        self.assertEqual((outer.get("param"), outer.get("type-v2")), ("horz", "layout-flow"))
+        grid, side = outer.findall("zone")
+        self.assertEqual(grid.get("param"), "vert")
+        self.assertEqual({k: side.get(k) for k in ("fixed-size", "is-fixed", "param", "w")},
+                         {"fixed-size": "160", "is-fixed": "true", "param": "vert", "w": "11429"})
+        ctl = side.find("zone")
+        filt = self.filtered().find(".//worksheet//filter").get("column")
+        self.assertEqual({k: ctl.get(k) for k in ("name", "param", "type-v2", "values", "h", "w")},
+                         {"name": "S", "param": filt, "type-v2": "filter", "values": "database",
+                          "h": "9889", "w": "11429"})
+        self.assertEqual(int(grid.get("w")) + int(side.get("w")), int(outer.get("w")))
+
+    def test_dashboard_without_controls_unchanged(self):
+        db = self.filtered(dash_filters=[]).find(".//dashboard")
+        self.assertIsNone(db.find("datasources"))
+        self.assertEqual(db.find("zones/zone/zone").get("param"), "vert")
+        self.assertFalse([z for z in db.iter("zone") if z.get("type-v2") == "filter"])
+
+    def test_filter_errors(self):
+        for sheet_filters, msg in (({"Region": True}, "boolean"), ({"Recent": False}, "true"),
+                                   ({"Nope": True}, "Unknown field"), (["Recent"], "map")):
+            with self.assertRaises(SystemExit) as cm:
+                self.filtered(dash_filters=[], sheet_filters=sheet_filters)
+            self.assertIn(msg, str(cm.exception))
+        for dash, msg in (([{"sheet": "X", "field": "Recent"}], "not in its layout"),
+                          ([{"sheet": "S", "field": "Region"}], "no filter on"),
+                          ([{"sheet": "S"}], "exactly"), ({"S": "Recent"}, "list")):
+            with self.assertRaises(SystemExit) as cm:
+                self.filtered(dash_filters=dash)
+            self.assertIn(msg, str(cm.exception))
+
     def test_missing_columns_errors(self):
         bad = {"snowflake": SNOWFLAKE["snowflake"]}
         with self.assertRaises(SystemExit) as cm:
