@@ -196,6 +196,7 @@ class SnowflakeTests(unittest.TestCase):
                                    ({"Nope": True}, "Unknown field"), (["Recent"], "map"),
                                    ({"Region": ["East"]}, "two or more"), ({"Region": "East"}, "two or more"),
                                    ({"Region": ["E", "E"]}, "different"), ({"Region": ["a\"b", "c"]}, "contain"),
+                                   ({"Region": ["", "c"]}, "empty"), ({"Region": ["a\\b", "c"]}, "contain"),
                                    ({"Sales Amt": [1, 2]}, "string dimension"),
                                    ({"Order Ts": ["a", "b"]}, "string dimension")):
             with self.assertRaises(SystemExit) as cm:

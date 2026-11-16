@@ -397,8 +397,9 @@ def sheet_filters(sheet, spec, ds):
                 raise SpecError(f"Sheet {sheet!r}: filter on {field!r} must be a list of two or more "
                                 f"different values to keep, e.g. [\"East\", \"West\"] "
                                 f"(single values aren't supported yet)")
-            if any('"' in v for v in value):
-                raise SpecError(f"Sheet {sheet!r}: filter values on {field!r} can't contain '\"' yet")
+            if any(not v or '"' in v or "\\" in v for v in value):
+                raise SpecError(f"Sheet {sheet!r}: filter values on {field!r} can't be empty or contain "
+                                f"'\"' or '\\' yet (no reference for how Desktop writes them)")
             members = [f'"{v}"' for v in value]
         else:
             raise SpecError(f"Sheet {sheet!r}: filter on {field!r} must be a boolean field (true) or a "

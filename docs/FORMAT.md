@@ -114,7 +114,7 @@ reference's `spec.json`; the expected XML is written out in `tests/test_compiler
 
 | Unverified / not emitted | Notes |
 |---|---|
-| A single string value (probably one `member` groupfilter like the boolean case), `member='false'`, exclude lists, numeric/date members, values containing `"`, ranges, top-N, context filters | No reference yet: the spec rejects them. REF-SF has examples of some, but they're on parameter-driven fields |
+| A single string value (probably one `member` groupfilter like the boolean case), `member='false'`, exclude lists, numeric/date members, empty values or values containing `"` or `\`, ranges, top-N, context filters | No reference yet: the spec rejects them. REF-SF has examples of some, but they're on parameter-driven fields |
 | Calc inputs that are themselves calcs: we list direct references only, not their inputs | REF-FILTERS's calcs only name database columns |
 | Desktop also wrote `<viewpoint><highlight><color-one-way><field>` (the filter field) in the sheet's window | Optional per OPEN-CSV/OPEN-SF; omitted |
 
@@ -180,8 +180,8 @@ opened it (OPEN-SF).
 | Our grid nests horz rows inside a vert container | OPEN-CSV, OPEN-SF |
 | Filter controls: Desktop wraps the grid in a `horz` `layout-flow` zone, next to a fixed side column `<zone fixed-size='160' is-fixed='true' param='vert' type-v2='layout-flow' w=160px>` | REF-FILTERS |
 | Filter control zone: `<zone name=<sheet> param=<filter field ref> type-v2='filter' values='database'>`, margin 4, h = 89px for a boolean (70px in the 2026-11-16 re-save; we keep 89) | REF-FILTERS |
-| Multi-value string control: same zone, h = 203px (on a 900px dashboard) | REF-FILTERS-CAT |
-| Controls from two data sources: one `<datasources>` with both, then one `<datasource-dependencies>` per source, in the order the controls were added (we use spec order) | REF-FILTERS-CAT |
+| Multi-value string control: same zone, h = 203px on a 900px dashboard, for a field keeping 2 values (one sample; Desktop may size others differently) | REF-FILTERS-CAT |
+| Controls from two data sources: one `<datasources>` with both, then one `<datasource-dependencies>` per source, in the reference's order, which is both the order the controls were added and the sorted source-name order (we use spec order; unverified which rule Desktop follows) | REF-FILTERS-CAT |
 | Desktop appends a new control at the bottom of the side column, after any legend; we stack all controls first, then legends | REF-FILTERS-CAT (layout choice only) |
 | A dashboard with a filter control gets `<datasources>` and a `<datasource-dependencies>` (filter field's column + column-instance only, not calc inputs) between `<size>` and `<zones>` | REF-FILTERS |
 | Color legend: `<zone name=<sheet> pane-specification-id='0' param=<sheet's color field ref> type-v2='color'>`, margin 4, h = 66px, in the same side column below the filter controls | REF-FILTERS |
