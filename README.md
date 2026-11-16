@@ -53,7 +53,8 @@ private/                git-ignored: real company workbooks, specs, denylist
                 "filters": { "Recent": true } }
   },
   "dashboards": { "Overview": { "size": [1200, 800], "layout": [["Sales by Region", "Orders"]],
-                                "filters": [{ "sheet": "Orders", "field": "Recent" }] } }
+                                "filters": [{ "sheet": "Orders", "field": "Recent" }],
+                                "legends": ["Sales by Region"] } }
 }
 ```
 
@@ -113,6 +114,11 @@ private/                git-ignored: real company workbooks, specs, denylist
 - `filters` (optional): filter controls, `[{"sheet": ..., "field": ...}]`. The sheet must be in the
   layout and already filter on that field. Controls stack in a fixed 160px column on the right, as
   Desktop places them.
+- `legends` (optional): sheet names whose color legend to show. Default: one legend per distinct
+  color field among the layout's sheets (sheets coloring by the same field share one). `[]` for none.
+  Legends stack under the filter controls in the same 160px column. Only color legends for a
+  dimension are supported: a sheet listed here with no color, or colored by a measure, is an error
+  (the default just skips those). No size legends yet.
 
 Common mistakes stop the build with a clear message instead of producing a broken workbook:
 - an unknown field, sheet, data source, mark, aggregation or column type
@@ -124,7 +130,8 @@ Validation is not complete yet: some malformed specs crash with a Python traceba
 ## Known limitations (see ROADMAP.md)
 
 - Filters: boolean `true` only (no categorical member lists, ranges or top-N yet).
-- No legends, parameters, titles/text boxes, sorting or number formatting yet.
+- Legends: color legends for dimensions only (no size or continuous color legends).
+- No parameters, titles/text boxes, sorting or number formatting yet.
 - Layout is equal-split only; long axis labels can be clipped.
 - Live connections only (no extracts / `.twbx`).
 
