@@ -1,0 +1,61 @@
+{
+  "datasources": {
+    "sales": {
+      "csv": "sales.csv",
+      "caption": "Sales",
+      "calcs": {
+        "Profit Ratio": "SUM([Profit]) / SUM([Sales])"
+      }
+    }
+  },
+  "sheets": {
+    "Sales by Region": {
+      "cols": "Region",
+      "rows": "sum(Sales)",
+      "color": "Category",
+      "mark": "bar"
+    },
+    "Profit by Category": {
+      "rows": "Category",
+      "cols": "sum(Profit)",
+      "mark": "bar"
+    },
+    "Ratio by Region": {
+      "cols": "Region",
+      "rows": "agg(Profit Ratio)",
+      "mark": "circle"
+    }
+  },
+  "dashboards": {
+    "Overview": {
+      "size": [
+        1200,
+        800
+      ],
+      "layout": [
+        [
+          "Sales by Region",
+          "Profit by Category"
+        ],
+        [
+          "Ratio by Region"
+        ]
+      ],
+      "title": true,
+      "text": "Sales overview for Q3",
+      "row_heights": [
+        456,
+        null
+      ],
+      "col_widths": [
+        [
+          609,
+          null
+        ],
+        [
+          null
+        ]
+      ]
+    }
+  }
+}

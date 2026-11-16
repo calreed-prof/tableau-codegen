@@ -1,3 +1,8 @@
 {
-  "dashboard[Dashboard 1]/children": "Desktop's phone <devicelayouts> is omitted on purpose; optional per OPEN-CSV (docs/FORMAT.md)"
+  "dashboard[Dashboard 1]/children": "Desktop's phone <devicelayouts> is omitted on purpose; optional per OPEN-CSV (docs/FORMAT.md)",
+  "dashboard[Dashboard 1]/zone 1.1 layout-flow:vert geometry": "Desktop puts a lone sheet straight in the root zone; we always emit the vert/horz grid containers, which open fine (OPEN-CSV)",
+  "dashboard[Dashboard 1]/zone 1.1 sheet:Sheet 1 geometry": "Desktop puts a lone sheet straight in the root zone; we always emit the vert/horz grid containers, which open fine (OPEN-CSV)",
+  "dashboard[Dashboard 1]/zone 1.1.1 layout-flow:horz geometry": "Desktop puts a lone sheet straight in the root zone; we always emit the vert/horz grid containers, which open fine (OPEN-CSV)",
+  "dashboard[Dashboard 1]/zone 1.1.1.1 sheet:Sheet 1 geometry": "Desktop puts a lone sheet straight in the root zone; we always emit the vert/horz grid containers, which open fine (OPEN-CSV)",
+  "dashboard[Dashboard 1]/zone tree": "Desktop puts a lone sheet straight in the root zone; we always emit the vert/horz grid containers, which open fine (OPEN-CSV)"
 }

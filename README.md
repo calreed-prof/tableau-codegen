@@ -130,7 +130,14 @@ Every option:
 **Dashboards:**
 - `size` is `[width, height]` in px. Default `[1200, 800]`.
 - `layout` is a list of rows, each a list of sheet names. Rows split the height equally, and sheets
-  split each row's width equally.
+  split each row's width equally, unless sized:
+  - `row_heights` (optional): one entry per row, px or `null`, e.g. `[456, null]`. A px row is fixed
+    at that height; `null` rows share what's left. At least one must be `null`.
+  - `col_widths` (optional): one list per row, one entry per sheet, px or `null`, e.g.
+    `[[609, null], [null]]`. Same rules, within the row's width.
+- `title` (optional): `true` shows the dashboard's name as a title at the top (42px).
+- `text` (optional): one line of plain text shown under the title, above the charts, e.g.
+  `"Sales overview for Q3"`.
 - `filters` (optional): filter controls, `[{"sheet": ..., "field": ...}]`. The sheet must be in the
   layout and already filter on that field. Controls stack in a fixed 160px column on the right, as
   Desktop places them.
@@ -142,18 +149,19 @@ Every option:
 
 Common mistakes stop the build with a clear message instead of producing a broken workbook:
 - an unknown field, sheet, data source, mark, aggregation or column type
+- an empty or malformed `layout`, or sizes that don't fit
 - missing Snowflake settings or `columns`
 
 Validation is not complete yet: some malformed specs crash with a Python traceback, e.g. a missing
-or empty `datasources`, a missing `sheets` or `layout`, an empty `layout`, a column without `type`, or a list given as
-an encoding.
+or empty `datasources`, a missing `sheets`, a column without `type`, or a list given as an encoding.
 
 ## Known limitations (see ROADMAP.md)
 
 - Filters: boolean `true` and lists of 2+ string values only (no single values, exclude, ranges or top-N yet).
 - Legends: color legends for dimensions only (no size or continuous color legends).
-- No parameters, titles/text boxes, sorting or number formatting yet.
-- Layout is equal-split only; long axis labels can be clipped.
+- Layout: fixed px sizes or equal splits; one title (the dashboard name) and one line of text above
+  the charts. No custom title text, multi-line or formatted text, or floating objects yet.
+- No parameters, sorting or number formatting yet. Long axis labels can be clipped.
 - Live connections only (no extracts / `.twbx`).
 
 ## Target format

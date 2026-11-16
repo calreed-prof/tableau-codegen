@@ -63,6 +63,51 @@ class CompilerTests(unittest.TestCase):
         self.assertEqual(len(ids), len(set(ids)))
 
 
+    # ---- M3 layout (REF-LAYOUT: references/layout-basic, also checked by tests/test_references.py)
+    def layout_db(self, **dash):
+        d = {"size": [1200, 800], "layout": [["S1", "S2"], ["S3"]], "legends": []}
+        d.update(dash)
+        sheets = {n: {"cols": "Region", "rows": "sum(Sales)"} for n in ("S1", "S2", "S3")}
+        return self.compile(spec(sheets=sheets, dashboards={"D": d})).find(".//dashboard")
+
+    def test_padding_is_8px(self):
+        root = self.layout_db().find("zones/zone")
+        grid = root.find("zone")
+        self.assertEqual({k: grid.get(k) for k in "xywh"}, {"x": "667", "y": "1000", "w": "98666", "h": "98000"})
+        grid = self.layout_db(size=[1400, 900]).find("zones/zone/zone")
+        self.assertEqual({k: grid.get(k) for k in "xywh"}, {"x": "571", "y": "889", "w": "98858", "h": "98222"})
+
+    def test_title_text_and_fixed_sizes(self):
+        db = self.layout_db(title=True, text="Hello", row_heights=[456, None], col_widths=[[609, None], [None]])
+        outer = db.find("zones/zone/zone")
+        title, text, grid = outer.findall("zone")
+        self.assertEqual((outer.get("param"), title.get("type-v2"), text.get("type-v2")), ("vert", "title", "text"))
+        self.assertEqual((title.get("h"), text.get("h"), grid.get("y")), ("5250", "3125", "9375"))
+        self.assertEqual(text.find("formatted-text/run").text, "Hello")
+        top, bottom = grid.findall("zone")
+        self.assertEqual((top.get("fixed-size"), top.get("is-fixed"), top.get("h")), ("456", "true", "57000"))
+        self.assertIsNone(bottom.get("is-fixed"))
+        self.assertEqual(int(top.get("h")) + int(bottom.get("h")), int(grid.get("h")))
+        s1, s2 = top.findall("zone")
+        self.assertEqual((s1.get("fixed-size"), s1.get("w"), s2.get("x")), ("601", "50750", str(667 + 50750)))
+        self.assertEqual(int(s1.get("w")) + int(s2.get("w")), int(top.get("w")))
+
+    def test_no_title_no_wrapper(self):
+        self.assertEqual(self.layout_db().find("zones/zone/zone").get("param"), "vert")
+        self.assertFalse([z for z in self.layout_db().iter("zone") if z.get("type-v2") in ("title", "text")])
+
+    def test_layout_errors(self):
+        for dash, msg in (({"row_heights": [100]}, "needs 2"), ({"row_heights": [100, 100]}, "at least one null"),
+                          ({"row_heights": [0, None]}, "positive"), ({"row_heights": [True, None]}, "positive"),
+                          ({"row_heights": [5000, None]}, "no room"), ({"col_widths": [[100, None]]}, "one list"),
+                          ({"col_widths": [[100, None], [100]]}, "at least one null"),
+                          ({"col_widths": [[5000, None], [None]]}, "no room"),
+                          ({"title": "Hi"}, "true or false"), ({"text": ""}, "one non-empty line"),
+                          ({"text": "a\nb"}, "one non-empty line"), ({"layout": []}, "non-empty")):
+            with self.assertRaises(SystemExit) as cm:
+                self.layout_db(**dash)
+            self.assertIn(msg, str(cm.exception))
+
 
 SNOWFLAKE = {
     "snowflake": {"server": "acct.snowflakecomputing.com", "warehouse": "WH", "database": "DB",

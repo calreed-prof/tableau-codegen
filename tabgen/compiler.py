@@ -483,6 +483,52 @@ SIDE_PX = 160         # Desktop's fixed-width column for filter controls/legends
 FILTER_CARD_PX = {"boolean": 89,   # boolean filter control (REF-FILTERS)
                   "string": 203}   # multi-value list control (REF-FILTERS-CAT)
 LEGEND_PX = 66        # height Desktop gave a categorical color legend (REF-FILTERS)
+PAD_PX = 8            # outer padding: x = 8px of the width, y = 8px of the height (REF-LAYOUT, REF-FILTERS)
+TITLE_PX = 42         # dashboard title zone (REF-LAYOUT)
+TEXT_PX = 25          # one-line text box (REF-LAYOUT)
+SHEET_MARGIN_PX = 4   # sheet/title/text zone-style margin; a fixed sheet's fixed-size excludes it (REF-LAYOUT)
+
+
+def split(total, sizes):
+    """Split total units among slots: fixed sizes as given, the rest shared equally by None slots."""
+    free = [i for i, v in enumerate(sizes) if v is None]
+    rest = total - sum(v for v in sizes if v is not None)
+    out = list(sizes)
+    for k, i in enumerate(free):
+        out[i] = rest // len(free) + (rest % len(free) if k == len(free) - 1 else 0)
+    return out
+
+
+def dashboard_layout(name, spec):
+    """Validate layout and the optional sizing keys; return (row_heights, col_widths) in px or None."""
+    grid = spec.get("layout")
+    if not isinstance(grid, list) or not grid or not all(isinstance(r, list) and r for r in grid):
+        raise SpecError(f"Dashboard {name!r}: 'layout' must be a non-empty list of non-empty rows of sheet names")
+
+    def sizes(key, value, n, what):
+        if value is None:
+            return [None] * n
+        if not isinstance(value, list) or len(value) != n:
+            raise SpecError(f"Dashboard {name!r}: '{key}' needs {n} entries ({what}), px or null")
+        if any(v is not None and (isinstance(v, bool) or not isinstance(v, int) or v <= 0) for v in value):
+            raise SpecError(f"Dashboard {name!r}: '{key}' entries must be positive whole px or null")
+        if None not in value:
+            raise SpecError(f"Dashboard {name!r}: '{key}' needs at least one null (a slot that fills the "
+                            f"rest); all-fixed layouts aren't supported yet")
+        return value
+
+    heights = sizes("row_heights", spec.get("row_heights"), len(grid), "one per layout row")
+    cw = spec.get("col_widths")
+    if cw is not None and (not isinstance(cw, list) or len(cw) != len(grid)):
+        raise SpecError(f"Dashboard {name!r}: 'col_widths' needs one list per layout row")
+    widths = [sizes("col_widths", cw[r] if cw else None, len(row), f"one per sheet in row {r + 1}")
+              for r, row in enumerate(grid)]
+    title, text = spec.get("title", False), spec.get("text")
+    if not isinstance(title, bool):
+        raise SpecError(f"Dashboard {name!r}: 'title' must be true or false (it shows the dashboard name)")
+    if text is not None and (not isinstance(text, str) or not text.strip() or "\n" in text):
+        raise SpecError(f"Dashboard {name!r}: 'text' must be one non-empty line of text")
+    return heights, widths
 
 
 def dashboard_controls(name, spec, sheets, sheet_source):
@@ -563,39 +609,68 @@ def dashboard_xml(parent, name, spec, ids, controls=(), legends=()):
                 sub(deps, "column-instance", **inst)
     zones = sub(db, "zones")
     grid = spec["layout"]
-    # Zone coordinates are in 1/100000ths of the dashboard; outer padding as Desktop does.
-    X0, Y0, IW, IH = 800, 1000, 98400, 98000
+    heights, widths = dashboard_layout(name, spec)
+    # Zone coordinates are in 1/100000ths of the dashboard. Outer padding is 8px on each side
+    # (REF-LAYOUT at 1200x800: x=667 y=1000; REF-FILTERS at 1400x900: x=571 y=889).
+    ux, uy = 100000 / W, 100000 / H  # units per px
+    X0, Y0 = round(PAD_PX * ux), round(PAD_PX * uy)
+    IW, IH = 100000 - 2 * X0, 100000 - 2 * Y0
     root = sub(zones, "zone", h=100000, id=next(ids), type_v2="layout-basic", w=100000, x=0, y=0)
+    parent, y = root, Y0
+    if spec.get("title") or spec.get("text"):
+        # Title, then text box, then the rest, stacked in a vert container (REF-LAYOUT).
+        parent = sub(root, "zone", h=IH, id=next(ids), param="vert", type_v2="layout-flow", w=IW, x=X0, y=Y0)
+        if spec.get("title"):
+            th = round(TITLE_PX * uy)
+            zone_style(sub(parent, "zone", h=th, id=next(ids), type_v2="title", w=IW, x=X0, y=y), "4")
+            y += th
+        if spec.get("text"):
+            th = round(TEXT_PX * uy)
+            z = sub(parent, "zone", h=th, id=next(ids), type_v2="text", w=IW, x=X0, y=y)
+            sub(sub(z, "formatted-text"), "run", spec["text"])
+            zone_style(z, "4")
+            y += th
+    CH = Y0 + IH - y  # height left for the grid (and side column)
     side = bool(controls or legends)
-    side_w = round(SIDE_PX * 100000 / W) if side else 0
+    side_w = round(SIDE_PX * ux) if side else 0
     GW = IW - side_w
     if side:
         # Grid and a fixed-width side column, side by side (REF-FILTERS).
-        outer = sub(root, "zone", h=IH, id=next(ids), param="horz", type_v2="layout-flow", w=IW, x=X0, y=Y0)
+        outer = sub(parent, "zone", h=CH, id=next(ids), param="horz", type_v2="layout-flow", w=IW, x=X0, y=y)
     else:
-        outer = root
-    vert = sub(outer, "zone", h=IH, id=next(ids), param="vert", type_v2="layout-flow", w=GW, x=X0, y=Y0)
-    rh = IH // len(grid)
-    for r, row in enumerate(grid):
-        y = Y0 + r * rh
-        horz = sub(vert, "zone", h=rh, id=next(ids), param="horz", type_v2="layout-flow", w=GW, x=X0, y=y)
-        cw = GW // len(row)
-        for c, sheet in enumerate(row):
-            z = sub(horz, "zone", h=rh, id=next(ids), name=sheet, w=cw, x=X0 + c * cw, y=y)
+        outer = parent
+    vert = sub(outer, "zone", h=CH, id=next(ids), param="vert", type_v2="layout-flow", w=GW, x=X0, y=y)
+    hs = [None if v is None else round(v * uy) for v in heights]
+    if sum(v for v in hs if v is not None) >= CH:
+        raise SpecError(f"Dashboard {name!r}: fixed 'row_heights' leave no room for the other rows")
+    ry = y
+    for row, px_h, rh, px_ws in zip(grid, heights, split(CH, hs), widths):
+        # A fixed row is a fixed horz container; its fixed-size is its full height (REF-LAYOUT).
+        horz = sub(vert, "zone", fixed_size=px_h, h=rh, id=next(ids), is_fixed="true" if px_h else None,
+                   param="horz", type_v2="layout-flow", w=GW, x=X0, y=ry)
+        ws = [None if v is None else round(v * ux) for v in px_ws]
+        if sum(v for v in ws if v is not None) >= GW:
+            raise SpecError(f"Dashboard {name!r}: fixed 'col_widths' leave no room for the other sheets")
+        cx = X0
+        for sheet, px_w, cw in zip(row, px_ws, split(GW, ws)):
+            # A fixed sheet's fixed-size excludes its two 4px margins (REF-LAYOUT: 609px wide -> 601).
+            z = sub(horz, "zone", fixed_size=px_w - 2 * SHEET_MARGIN_PX if px_w else None, h=rh,
+                    id=next(ids), is_fixed="true" if px_w else None, name=sheet, w=cw, x=cx, y=ry)
             zone_style(z, "4")
+            cx += cw
+        ry += rh
     if side:
         # Filter controls first, then color legends, stacked top-down (REF-FILTERS).
         sx = X0 + GW
-        col = sub(outer, "zone", fixed_size=SIDE_PX, h=IH, id=next(ids), is_fixed="true", param="vert",
-                  type_v2="layout-flow", w=side_w, x=sx, y=Y0)
-        y = Y0
+        col = sub(outer, "zone", fixed_size=SIDE_PX, h=CH, id=next(ids), is_fixed="true", param="vert",
+                  type_v2="layout-flow", w=side_w, x=sx, y=y)
         for sheet, ds, field in controls:
-            fh = round(FILTER_CARD_PX[ds.col(field)["datatype"]] * 100000 / H)
+            fh = round(FILTER_CARD_PX[ds.col(field)["datatype"]] * uy)
             z = sub(col, "zone", h=fh, id=next(ids), name=sheet, param=ds.ref(field, "none")[0],
                     type_v2="filter", values="database", w=side_w, x=sx, y=y)
             zone_style(z, "4")
             y += fh
-        lh = round(LEGEND_PX * 100000 / H)
+        lh = round(LEGEND_PX * uy)
         for sheet, ref in legends:
             # Legends add nothing to the dashboard's datasource-dependencies (REF-FILTERS).
             z = sub(col, "zone", h=lh, id=next(ids), name=sheet, pane_specification_id="0", param=ref,
