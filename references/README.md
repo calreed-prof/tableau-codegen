@@ -1,7 +1,7 @@
 # Desktop references
 
 Each folder is one feature's evidence: a workbook **saved by Tableau Desktop**, plus a `spec.json`
-that rebuilds it. Only `csv-basic/` is committed; company-data references use the same layout in
+that rebuilds it. `csv-basic/` and `layout-basic/` are committed; company-data references use the same layout in
 git-ignored `private/references/` (maintainer only). See `docs/FORMAT.md` for what each one proves.
 
 ```
