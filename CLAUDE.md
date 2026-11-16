@@ -19,7 +19,8 @@ before changing the compiler.
 - PR #7 (M1 part 2): string dimension filters kept to 2+ values, + their dashboard controls (also
   from a second data source); REF-FILTERS-CAT (`private/references/filters-categorical/`) + OPEN-M1P2.
 - PR #8 (chore): `refdiff.py check`/`lock`, `tests/test_references.py` (every reference, private
-  ones locally), `references/README.md`. All references are locked.
+  ones locally), `references/README.md`. References are hash-pinned in `LOCK.json`; the read-only bit is local only
+  (git doesn't keep it), so re-run `lock` after a fresh clone.
 - **Next: M3 Layout.** Also fixes the outer padding (Desktop: x=571/y=889 at 1400x900; we use
   800/1000), so `check` can claim zone x/y too. M2 part 2 (size and
   continuous color legends) needs a reference: in a saved workbook, color a sheet by a measure and

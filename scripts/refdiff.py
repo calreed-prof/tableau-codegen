@@ -26,6 +26,10 @@ import stat
 import sys
 import xml.etree.ElementTree as ET
 
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
+
 ID_PATTERNS = [
     (re.compile(r"(federated|textscan|snowflake|sqlproxy)\.[a-z0-9]{20,}"), r"\1.<id>"),
     (re.compile(r"_[A-F0-9]{32}\b"), "_<objid>"),
@@ -91,6 +95,8 @@ def claims(root):
     for ws in root.iter("worksheet"):
         name = ws.get("name")
         view = ws.find("table/view")
+        if view is None:
+            raise ValueError(f"worksheet {name!r} has no <table><view>: not a workbook this tool understands")
         out[f"worksheet[{name}]/view children"] = [c.tag for c in view]
         for tag in ("datasources", "datasource-dependencies", "filter", "slices"):
             out[f"worksheet[{name}]/view/{tag}"] = sorted(canon(e) for e in view.findall(tag))
@@ -103,6 +109,8 @@ def claims(root):
         out[f"dashboard[{name}]/children"] = [c.tag for c in db]
         for tag in ("size", "datasources", "datasource-dependencies"):
             out[f"dashboard[{name}]/{tag}"] = sorted(canon(e) for e in db.findall(tag))
+        if db.find("zones") is None:
+            raise ValueError(f"dashboard {name!r} has no <zones>: not a workbook this tool understands")
         zones = list(db.find("zones").iter("zone"))  # not <devicelayouts> (phone layout)
         for kind in ("filter", "color"):
             mine = [z for z in zones if z.get("type-v2") == kind]
@@ -117,19 +125,22 @@ def claims(root):
 
 
 def compare(ref_root, gen_root, known=()):
-    """Return [(claim key, reference value, generated value)] for claims that differ."""
+    """Return (mismatches, stale): mismatches are [(claim key, reference value, generated value)]
+    for claims that differ and aren't known; stale are known-diff keys that no longer differ
+    (fixed, or the claim is gone), so a known diff can't keep hiding a claim that now matches."""
     want, got = claims(ref_root), claims(gen_root)
-    bad = []
-    for key in sorted(set(want) | set(got)):
+    bad, stale = [], []
+    for key in sorted(set(want) | set(got) | set(known)):
+        differs = want.get(key) != got.get(key)
         if key in known:
-            continue
-        if want.get(key) != got.get(key):
+            if not differs:
+                stale.append(key)
+        elif differs:
             bad.append((key, want.get(key), got.get(key)))
-    return bad
+    return bad, stale
 
 
 def check(ref_dir):
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from tabgen import build
     with open(os.path.join(ref_dir, "spec.json"), encoding="utf-8") as fh:
         spec = json.load(fh)
@@ -140,9 +151,7 @@ def check(ref_dir):
             known = json.load(fh)
     gen = ET.fromstring(build(spec, ref_dir))
     ref = ET.parse(os.path.join(ref_dir, "desktop-saved.twb")).getroot()
-    bad = compare(ref, gen, known)
-    stale = sorted(k for k in known if k not in claims(ref) and k not in claims(gen))
-    return bad, stale
+    return compare(ref, gen, known)
 
 
 def _print_check(ref_dir):
@@ -150,7 +159,7 @@ def _print_check(ref_dir):
     for key, want, got in bad:
         print(f"MISMATCH {key}\n  reference: {want}\n  generated: {got}")
     for key in stale:
-        print(f"STALE known-diff (no such claim): {key}")
+        print(f"STALE known-diff (no longer differs; remove it): {key}")
     print(f"{ref_dir}: {'OK' if not bad and not stale else f'{len(bad)} mismatch(es)'}")
     return 1 if bad or stale else 0
 

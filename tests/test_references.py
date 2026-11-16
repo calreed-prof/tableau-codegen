@@ -9,6 +9,7 @@ Each reference root's LOCK.json pins the SHA-256 of its desktop-saved.twb files,
 that Desktop (or anyone) saved over fails here instead of silently changing the evidence.
 """
 import importlib.util
+import json
 import os
 import unittest
 
@@ -41,7 +42,7 @@ class ReferenceTests(unittest.TestCase):
                 bad, stale = refdiff.check(d)
                 msg = "\n".join(f"{k}\n  reference: {w}\n  generated: {g}" for k, w, g in bad)
                 self.assertEqual(bad, [], "\n" + msg)
-                self.assertEqual(stale, [], "known-diffs.json lists claims that no longer exist")
+                self.assertEqual(stale, [], "known-diffs.json lists differences that no longer exist: remove them")
 
     def test_references_locked(self):
         for root in ROOTS:
@@ -52,7 +53,6 @@ class ReferenceTests(unittest.TestCase):
             with self.subTest(root=os.path.relpath(root, ROOT)):
                 self.assertTrue(os.path.isfile(manifest),
                                 f"missing {manifest}: run python3 scripts/refdiff.py lock <dir>...")
-                import json
                 with open(manifest, encoding="utf-8") as fh:
                     locked = json.load(fh)
                 for d in dirs:

@@ -33,5 +33,9 @@ LOCK.json                     SHA-256 of every desktop-saved.twb in this folder
 4. Teach the compiler until `check` passes, or record an accepted difference in `known-diffs.json`
    with its reason. Add the facts to `docs/FORMAT.md`.
 
+Git doesn't keep the read-only bit, so in a fresh clone the hash in `LOCK.json` is the only guard
+until you run `lock` again. If Desktop saves by writing a new file and renaming it over the old one,
+a read-only file may not stop it; the hash test still catches the change.
+
 To replace a reference on purpose, `chmod u+w` it, save the new one, and lock it again. A changed
 hash otherwise fails `test_references_locked`.
