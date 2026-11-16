@@ -6,19 +6,21 @@ opens in Tableau Desktop looking finished, without clicking through the GUI.
 Each item ships as its own PR, backed by a Desktop-saved reference. Done = merged + opened in Desktop.
 
 ## Done
-- **M0 Core:** CSV and live Snowflake (OAuth) sources, bar/line/circle/etc. marks, color/size/label/
-  detail/tooltip encodings, row-level vs aggregate calcs, grid dashboards, `introspect`.
-  Some emitted options are still unverified (see `docs/FORMAT.md`); they get evidence before features
-  build on them.
+- **M0 Core:** CSV and live Snowflake (OAuth) sources, bar/line/circle marks, color encoding,
+  row-level vs aggregate calcs, grid dashboards, `introspect`. The compiler also emits other marks
+  and `size`/`detail` etc., which are still **unverified** (`docs/FORMAT.md`); they get evidence
+  before features build on them.
 - **Process (PR #1):** independent PR reviewer agent, CI on Python 3.9, git hooks, leak check,
   golden tests.
-- **Fix: Snowflake metadata remote-types** match the Desktop reference (see `docs/FORMAT.md`).
+- **PR #2:** docs (`CLAUDE.md`, README spec reference, `docs/FORMAT.md` evidence log).
+- **Fix (PR #3):** Snowflake metadata remote-types match the Desktop reference.
 - **M1 Filters (part 1, PR #4):** boolean worksheet filters + dashboard filter controls.
 - **M2 Legends (part 1, PR #5):** dashboard color legends for dimension color fields.
+- **PR #6:** docs follow-up to #5 (recorded the Desktop opens, added the docs-in-the-same-PR rule).
 - **M1 Filters (part 2, PR #7):** string dimension filters kept to 2+ values, controls from several
   data sources.
 - **Dev tooling (PR #8):** reference checks for every reference (private ones locally) and
-  hash-pinned references.
+  hash-pinned references. The read-only bit is local only: re-run `refdiff.py lock` after a clone.
 
 ## Next (in order)
 - **M3 Layout:** row heights / column widths, dashboard title, text boxes.
