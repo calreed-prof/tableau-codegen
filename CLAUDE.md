@@ -18,7 +18,10 @@ before changing the compiler.
   `legends`; REF-FILTERS + OPEN-M2.
 - PR #7 (M1 part 2): string dimension filters kept to 2+ values, + their dashboard controls (also
   from a second data source); REF-FILTERS-CAT (`private/references/filters-categorical/`) + OPEN-M1P2.
-- **Next: M3 Layout.** M2 part 2 (size and
+- PR #8 (chore): `refdiff.py check`/`lock`, `tests/test_references.py` (every reference, private
+  ones locally), `references/README.md`. All references are locked.
+- **Next: M3 Layout.** Also fixes the outer padding (Desktop: x=571/y=889 at 1400x900; we use
+  800/1000), so `check` can claim zone x/y too. M2 part 2 (size and
   continuous color legends) needs a reference: in a saved workbook, color a sheet by a measure and
   put a measure on size, show both legends on the dashboard, and save as
   `private/references/legends-size/desktop-saved.twb`.
@@ -66,8 +69,9 @@ Tableau's real format is only partly documented, and the published XSD doesn't m
 
 - Real company workbooks, specs and connection details live only in `private/` (git-ignored).
 - Committed examples use placeholders (`your_account.snowflakecomputing.com`, `YOUR_WAREHOUSE`).
-- New Desktop references: run `python3 scripts/refdiff.py clean <file>` and replace server,
-  username, database, schema and table names before committing.
+- New Desktop references: follow `references/README.md` (Save As into a new folder, `clean`, a
+  `spec.json`, `lock`, `check`). Replace server, username, database, schema and table names before
+  committing.
 - `scripts/check_leaks.py` must pass. CI checks generic rules only (it has no company denylist);
   the pre-commit hook and the reviewer also check `private/denylist.txt` via `--require-denylist`.
 - This is the human's personal GitHub repo (owner `calreed-prof`). The `gh` CLI has more than one
@@ -85,5 +89,7 @@ python3 -m unittest discover tests
 python3 scripts/check_leaks.py --require-denylist
 python3 scripts/refdiff.py clean <desktop-saved.twb>   # strip fingerprints/thumbnails
 python3 scripts/refdiff.py diff <reference.twb> <generated.twb>
+python3 scripts/refdiff.py check <reference-dir>        # claimed XML vs Desktop (tests run it too)
+python3 scripts/refdiff.py lock <reference-dir>         # read-only + SHA-256 in LOCK.json
 git config core.hooksPath githooks              # once per clone
 ```

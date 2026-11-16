@@ -15,6 +15,8 @@ Each item ships as its own PR, backed by a Desktop-saved reference. Done = merge
 - **Fix: Snowflake metadata remote-types** match the Desktop reference (see `docs/FORMAT.md`).
 - **M1 Filters (part 1, PR #4):** boolean worksheet filters + dashboard filter controls.
 - **M2 Legends (part 1, PR #5):** dashboard color legends for dimension color fields.
+- **Dev tooling (PR #8):** reference checks for every reference (private ones locally) and locked
+  references.
 - **M1 Filters (part 2, PR #7):** string dimension filters kept to 2+ values, controls from several
   data sources.
 
