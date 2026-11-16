@@ -10,7 +10,7 @@ before changing the compiler.
 - Done: M0 core (CSV + live Snowflake OAuth sources, calcs, marks/encodings, grid dashboards,
   `introspect`) and the dev process (PR #1: reviewer agent, CI, hooks, leak + golden checks).
 - PR #2 (docs: this file, README spec reference, `docs/FORMAT.md` evidence log).
-- `fix/snowflake-remote-types`: live Snowflake metadata now matches REF-SF (integer 131 +
+- PR #3: live Snowflake metadata now matches REF-SF (integer 131 +
   precision 38/scale 0, date 7, real precision 15).
 - PR #4 (M1 part 1): boolean worksheet filters (`true`) + dashboard filter controls,
   from REF-FILTERS (`private/references/filters-legends/`, see `docs/FORMAT.md`).

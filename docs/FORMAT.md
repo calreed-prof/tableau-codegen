@@ -23,8 +23,8 @@ Evidence keys:
   generated and opened in Desktop 2026.2.1 by the human, rendering correctly (2026-11-10). Not
   machine-checkable: it's a recorded human observation.
 - **OPEN-M2**: generated with PR #5 and opened in Desktop 2026.2.1 by the human, rendering correctly
-  (2026-11-16): `examples/superstore-mini` (one legend, no filter control), the private
-  filters-legends spec with `"legends": ["Weekly Forecast"]` (filter + legend), and the private
+  (2026-11-16): `examples/superstore-mini` (one legend, no filter control), `generated-m2.twb`
+  next to REF-FILTERS (its `spec.json` built with a one-sheet `legends` override; filter + legend), and the private
   Snowflake example (two legends, one on a calculated string field, no filter control).
 - **OBS**: other recorded observations from the 2026-11-10 session (no file to grep).
 
