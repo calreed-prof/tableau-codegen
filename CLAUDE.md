@@ -17,7 +17,7 @@ before changing the compiler.
 - PR #5 (M2 part 1): dashboard color legends for dimension color fields, auto-added or picked with
   `legends`; REF-FILTERS + OPEN-M2.
 - PR #7 (M1 part 2): string dimension filters kept to 2+ values, + their dashboard controls (also
-  from a second data source); REF-FILTERS-CAT (`private/references/filters-categorical/`).
+  from a second data source); REF-FILTERS-CAT (`private/references/filters-categorical/`) + OPEN-M1P2.
 - **Next: M3 Layout.** M2 part 2 (size and
   continuous color legends) needs a reference: in a saved workbook, color a sheet by a measure and
   put a measure on size, show both legends on the dashboard, and save as

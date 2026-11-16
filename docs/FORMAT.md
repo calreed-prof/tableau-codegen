@@ -32,6 +32,9 @@ Evidence keys:
   (2026-11-16): `examples/superstore-mini` (one legend, no filter control), `generated-m2.twb`
   next to REF-FILTERS (its `spec.json` built with a one-sheet `legends` override; filter + legend), and the private
   Snowflake example (two legends, one on a calculated string field, no filter control).
+- **OPEN-M1P2**: `private/references/filters-categorical/generated.twb` (PR #7) opened in Desktop
+  2026.2.1 by the human (2026-11-16): renders correctly; side column shows Recent Run, Level (2 values
+  ticked) and the Metric legend in that order; ticking another Level value updates the chart.
 - **OBS**: other recorded observations from the 2026-11-10 session (no file to grep).
 
 ## Workbook envelope
@@ -181,8 +184,8 @@ opened it (OPEN-SF).
 | Filter controls: Desktop wraps the grid in a `horz` `layout-flow` zone, next to a fixed side column `<zone fixed-size='160' is-fixed='true' param='vert' type-v2='layout-flow' w=160px>` | REF-FILTERS |
 | Filter control zone: `<zone name=<sheet> param=<filter field ref> type-v2='filter' values='database'>`, margin 4, h = 89px for a boolean (70px in the 2026-11-16 re-save; we keep 89) | REF-FILTERS |
 | Multi-value string control: same zone, h = 203px on a 900px dashboard, for a field keeping 2 values (one sample; Desktop may size others differently) | REF-FILTERS-CAT |
-| Controls from two data sources: one `<datasources>` with both, then one `<datasource-dependencies>` per source, in the reference's order, which is both the order the controls were added and the sorted source-name order (we use spec order; unverified which rule Desktop follows) | REF-FILTERS-CAT |
-| Desktop appends a new control at the bottom of the side column, after any legend; we stack all controls first, then legends | REF-FILTERS-CAT (layout choice only) |
+| Controls from two data sources: one `<datasources>` with both, then one `<datasource-dependencies>` per source, in the reference's order, which is both the order the controls were added and the sorted source-name order (we use spec order, which opens fine per OPEN-M1P2; unverified which rule Desktop's own saves follow) | REF-FILTERS-CAT |
+| Desktop appends a new control at the bottom of the side column, after any legend; we stack all controls first, then legends, and Desktop accepts that order | REF-FILTERS-CAT, OPEN-M1P2 |
 | A dashboard with a filter control gets `<datasources>` and a `<datasource-dependencies>` (filter field's column + column-instance only, not calc inputs) between `<size>` and `<zones>` | REF-FILTERS |
 | Color legend: `<zone name=<sheet> pane-specification-id='0' param=<sheet's color field ref> type-v2='color'>`, margin 4, h = 66px, in the same side column below the filter controls | REF-FILTERS |
 | A side column holding legends only (no filter control); a legend on a calculated dimension | OPEN-M2 |
