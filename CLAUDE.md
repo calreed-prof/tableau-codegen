@@ -16,13 +16,16 @@ before changing the compiler.
   from REF-FILTERS (`private/references/filters-legends/`, see `docs/FORMAT.md`).
 - PR #5 (M2 part 1): dashboard color legends for dimension color fields, auto-added or picked with
   `legends`; REF-FILTERS + OPEN-M2.
-- **Next:** M1 part 2 (below) once its reference exists; otherwise M3 Layout. M2 part 2 (size and
+- PR #7 (M1 part 2): string dimension filters kept to 2+ values, + their dashboard controls (also
+  from a second data source); REF-FILTERS-CAT (`private/references/filters-categorical/`) + OPEN-M1P2.
+- **Next: M3 Layout.** M2 part 2 (size and
   continuous color legends) needs a reference: in a saved workbook, color a sheet by a measure and
   put a measure on size, show both legends on the dashboard, and save as
   `private/references/legends-size/desktop-saved.twb`.
-- **M1 part 2 (categorical member filters)** needs a reference: in the same workbook, filter a
-  string field to two values on one sheet, show its control, and save as
-  `private/references/filters-categorical/desktop-saved.twb`.
+- Single-value string filters need a reference (filter a string field to one value, save as
+  `private/references/filters-single/desktop-saved.twb`); low priority until a dashboard needs it.
+- References: always **Save As** into a new `private/references/<feature>/` folder. A plain Save
+  overwrote REF-FILTERS on 2026-11-16.
 - The human uses Tableau Desktop 2026.2.1 on macOS, Python 3.9, Snowflake with browser SSO.
 
 ## Workflow (mandatory)

@@ -15,12 +15,13 @@ Each item ships as its own PR, backed by a Desktop-saved reference. Done = merge
 - **Fix: Snowflake metadata remote-types** match the Desktop reference (see `docs/FORMAT.md`).
 - **M1 Filters (part 1, PR #4):** boolean worksheet filters + dashboard filter controls.
 - **M2 Legends (part 1, PR #5):** dashboard color legends for dimension color fields.
+- **M1 Filters (part 2, PR #7):** string dimension filters kept to 2+ values, controls from several
+  data sources.
 
 ## Next (in order)
-- **M1 Filters (part 2):** categorical member lists need one more reference (see
-  `CLAUDE.md` → Current status); top-N later.
-- **M2 Legends (part 2):** size and continuous color legends; needs a reference (see `CLAUDE.md`).
 - **M3 Layout:** row heights / column widths, dashboard title, text boxes.
+- **M2 Legends (part 2):** size and continuous color legends; needs a reference (see `CLAUDE.md`).
+- **M1 Filters (part 3):** single values, exclude, numeric/date ranges, top-N; each needs a reference.
 - **M4 Parameters:** list parameters, parameter controls, calcs that reference parameters
   (lets `introspect` keep parameter-driven calcs).
 - **M5 Formatting:** number formats, axis ranges, sort order, mark labels.
