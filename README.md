@@ -42,14 +42,17 @@ fuller runnable example, start from `examples/superstore-mini/spec.json`.
 }
 ```
 
-Top level: `datasources` (required, at least one), `sheets` (required), `dashboards` (optional).
+Top level: `datasources` (required, at least one), `sheets` (required), `dashboards` (optional),
+`parameters` (optional).
 Every option:
 
 ```json
 {
+  "parameters": { "Metric Choice": { "type": "string", "values": ["Sales", "Profit"], "value": "Sales" } },
   "datasources": {
     "sales": { "csv": "sales.csv",
-               "calcs": { "Profit Ratio": "SUM([Profit]) / SUM([Sales])" } },
+               "calcs": { "Profit Ratio": "SUM([Profit]) / SUM([Sales])",
+                          "Chosen Metric": "IF [Metric Choice] = 'Sales' THEN [Sales] ELSE [Profit] END" } },
     "orders": {
       "snowflake": { "server": "your_account.snowflakecomputing.com", "warehouse": "YOUR_WAREHOUSE",
                      "database": "YOUR_DATABASE", "schema": "YOUR_SCHEMA", "table": "ORDERS",
@@ -69,9 +72,18 @@ Every option:
   },
   "dashboards": { "Overview": { "size": [1200, 800], "layout": [["Sales by Region", "Orders"]],
                                 "filters": [{ "sheet": "Orders", "field": "Recent" }],
-                                "legends": ["Sales by Region"] } }
+                                "legends": ["Sales by Region"] },
+                  "Metrics": { "layout": [["Sales by Region"]], "parameters": ["Metric Choice"] } }
 }
 ```
+
+**Parameters** (keyed by the name shown in Tableau):
+- `type`: `string` (the only type so far). `values`: the list of allowed values, at least one, all
+  different. `value` (optional): the current value; default the first.
+- Calcs name a parameter like a field: `[Metric Choice]`. A parameter can't share its name with a
+  field or calc.
+- Numbers, dates, ranges, display names (aliases) and values containing `"` or `\` are a `SpecError`
+  until there's a Desktop reference.
 
 **Data sources** (keyed by a short name; the first one is the default for sheets):
 - `caption` (optional): the name shown in Tableau. Default: CSV file name / Desktop-style
@@ -87,8 +99,9 @@ Every option:
   - Needs a `columns` map: `name -> type`, or `{type, caption, role}`. Types: `string integer real
     date datetime boolean`.
   - ALL_CAPS names get Desktop-style captions (`SALES_AMT` → "Sales Amt").
-  - Easiest way to fill it in: `tabgen introspect` an existing workbook on the same table. It drops
-    calcs that reference parameters.
+  - Easiest way to fill it in: `tabgen introspect` an existing workbook on the same table. It keeps
+    calcs that use string list parameters (and adds a `parameters` block), and drops calcs on other
+    parameters.
 - `calcs`: `caption -> formula` (a real measure) or `{formula, type, role}`. Formulas use Tableau
   syntax with raw column names (`[SALES_AMT]`).
 
@@ -146,6 +159,8 @@ Every option:
   Legends stack under the filter controls in the same 160px column. Only color legends for a
   dimension are supported: a sheet listed here with no color, or colored by a measure, is an error
   (the default just skips those). No size legends yet.
+- `parameters` (optional): parameter names whose control (a drop-down) to show, below the legends in
+  the same 160px column. Can't be combined with `filters` on one dashboard yet.
 
 Common mistakes stop the build with a clear message instead of producing a broken workbook:
 - an unknown field, sheet, data source, mark, aggregation or column type
@@ -161,7 +176,8 @@ or empty `datasources`, a missing `sheets`, a column without `type`, or a list g
 - Legends: color legends for dimensions only (no size or continuous color legends).
 - Layout: fixed px sizes or equal splits; one title (the dashboard name) and one line of text above
   the charts. No custom title text, multi-line or formatted text, or floating objects yet.
-- No parameters, sorting or number formatting yet. Long axis labels can be clipped.
+- Parameters: string lists only; their controls can't share a dashboard with filter controls yet.
+- No sorting or number formatting yet. Long axis labels can be clipped.
 - Live connections only (no extracts / `.twbx`).
 
 ## Target format

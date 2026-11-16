@@ -1,0 +1,9 @@
+Region,Category,Order Date,Sales,Profit
+East,Furniture,2026-01-05,1200.50,210.10
+East,Technology,2026-02-11,3400.00,640.00
+West,Furniture,2026-01-20,980.25,-45.00
+West,Office Supplies,2026-03-02,450.75,88.30
+Central,Technology,2026-02-18,2750.00,512.40
+South,Office Supplies,2026-03-15,610.00,95.10
+South,Furniture,2026-01-28,1325.90,150.00
+Central,Office Supplies,2026-03-22,390.60,42.70

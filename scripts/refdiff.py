@@ -36,6 +36,7 @@ ID_PATTERNS = [
     (re.compile(r"uuid=\"\{[^}]+\}\""), 'uuid="<uuid>"'),
     (re.compile(r"\bid=\"-?\d+\""), 'id="<n>"'),
     (re.compile(r"Calculation_\d+"), "Calculation_<n>"),
+    (re.compile(r"Parameter \d+"), "Parameter <n>"),
 ]
 FINGERPRINT = re.compile(r"\s_\.fcp\.WorkbookFingerprinting\.true\.\.\.[a-z-]+='[^']*'")
 
@@ -86,7 +87,7 @@ def canon(el):
 
 
 # Zone attributes we claim for filter controls and legends (x/y follow the outer padding, M3).
-ZONE_KEYS = ("name", "type-v2", "param", "values", "pane-specification-id", "h", "w")
+ZONE_KEYS = ("name", "type-v2", "param", "values", "pane-specification-id", "mode", "h", "w")
 
 
 GEOMETRY_KEYS = ("x", "y", "w", "h", "fixed-size", "is-fixed")
@@ -114,6 +115,16 @@ def _paths(z, path):
 def claims(root):
     """{claim key: canonical value} for everything the compiler claims to reproduce."""
     out = {}
+    dss = root.findall("datasources/datasource")
+    out["datasources"] = [_norm(d.get("name")) for d in dss]
+    for d in dss:
+        key = f"datasource[{d.get('caption') or _norm(d.get('name'))}]"
+        if d.get("name") == "Parameters":
+            out[key] = canon(d)  # parameters: whole source, with members (M4)
+            continue
+        # Calcs and the parameter dependencies they need; not connection/metadata (covered by tests).
+        out[f"{key}/calcs"] = sorted(canon(c) for c in d.findall("column") if c.find("calculation") is not None)
+        out[f"{key}/datasource-dependencies"] = [canon(e) for e in d.findall("datasource-dependencies")]
     for ws in root.iter("worksheet"):
         name = ws.get("name")
         view = ws.find("table/view")
@@ -134,7 +145,7 @@ def claims(root):
         if db.find("zones") is None:
             raise ValueError(f"dashboard {name!r} has no <zones>: not a workbook this tool understands")
         zones = list(db.find("zones").iter("zone"))  # not <devicelayouts> (phone layout)
-        for kind in ("filter", "color"):
+        for kind in ("filter", "color", "paramctrl"):
             mine = [z for z in zones if z.get("type-v2") == kind]
             out[f"dashboard[{name}]/{kind} zone count"] = len(mine)
             for z in mine:  # one claim per zone, so a known diff can't hide the others
