@@ -92,6 +92,32 @@ class CompilerTests(unittest.TestCase):
         self.assertEqual((s1.get("fixed-size"), s1.get("w"), s2.get("x")), ("601", "50750", str(667 + 50750)))
         self.assertEqual(int(s1.get("w")) + int(s2.get("w")), int(top.get("w")))
 
+    def test_equal_split_is_pinned(self):
+        # Desktop re-splits flexible zones by content on open, so equal shares are written as fixed
+        # px on every flexible slot but the last (REF-EVEN-SPLIT: 1184px -> 592px, fixed-size 584).
+        grid = self.layout_db().find("zones/zone/zone")
+        top, bottom = grid.findall("zone")
+        self.assertEqual((top.get("fixed-size"), top.get("is-fixed")), ("392", "true"))  # (800 - 16) / 2
+        self.assertIsNone(bottom.get("is-fixed"))
+        s1, s2 = top.findall("zone")
+        self.assertEqual((s1.get("fixed-size"), s1.get("is-fixed"), s1.get("w")), ("584", "true", "49333"))
+        self.assertIsNone(s2.get("is-fixed"))
+        self.assertIsNone(bottom.find("zone").get("is-fixed"))  # a lone sheet stays flexible
+
+    def test_equal_split_shares_what_fixed_slots_leave(self):
+        db = self.layout_db(layout=[["S1", "S2", "S3"]], col_widths=[[300, None, None]])
+        s1, s2, s3 = db.find("zones/zone/zone/zone").findall("zone")
+        self.assertEqual((s1.get("fixed-size"), s2.get("fixed-size"), s3.get("is-fixed")), ("292", "434", None))
+
+    def test_equal_split_after_title_and_side_column(self):
+        sheets = {n: {"cols": "Region", "rows": "sum(Sales)", "color": "Category"} for n in ("S1", "S2", "S3")}
+        d = {"size": [1200, 800], "layout": [["S1", "S2"], ["S3"]], "title": True}
+        db = self.compile(spec(sheets=sheets, dashboards={"D": d})).find(".//dashboard")
+        horz = [z for z in db.iter("zone") if z.get("param") == "horz" and z.get("fixed-size")]
+        # Height: 800 - 16 - 42 title = 742 -> 371. Width: 1200 - 16 - 160 side = 1024 -> 512 -> 504.
+        self.assertEqual([z.get("fixed-size") for z in horz], ["371"])
+        self.assertEqual([z.get("fixed-size") for z in db.iter("zone") if z.get("name") == "S1"][0], "504")
+
     def test_missing_layout_is_spec_error(self):
         with self.assertRaises(SystemExit) as cm:
             build(spec(dashboards={"D": {"size": [1200, 800]}}), EXAMPLE)

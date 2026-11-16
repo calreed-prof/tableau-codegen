@@ -1,0 +1,4 @@
+{
+  "dashboard[Half and Half]/zone 1.1.1.1 sheet:Sales by Region geometry": "Rounding: Desktop stored 49334/49332 (x=50001) for a 592px fixed sheet + the rest; we round 592px to 49333 and give the rest 49333. One sample, so Desktop's rounding rule isn't known; 1/100000 of the width (0.01px)",
+  "dashboard[Half and Half]/zone 1.1.1.2 sheet:Profit by Category geometry": "Rounding: Desktop stored 49334/49332 (x=50001) for a 592px fixed sheet + the rest; we round 592px to 49333 and give the rest 49333. One sample, so Desktop's rounding rule isn't known; 1/100000 of the width (0.01px)"
+}

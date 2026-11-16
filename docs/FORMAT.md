@@ -33,6 +33,8 @@ maintainer can open them; their facts are summarised here and in PRs.
 | **REF-FILTERS-CAT** | Desktop 2026.2.1: REF-FILTERS plus a filter keeping the string dimension `LEVEL` to two values and its dashboard control, so the dashboard has controls from two data sources (2026-11-16) | private: `private/references/filters-categorical/` |
 | **REF-LAYOUT** | Desktop 2026.2.1: `examples/superstore-mini` built by us, then by hand: top row fixed to 456px, its first sheet to 609px wide, Show Title, a text box above the charts (2026-11-16). Cleaned; directory replaced | committed: `references/layout-basic/` |
 | **REF-PARAMS** | Desktop 2026.2.1: `examples/superstore-mini` built by us, then by hand: a string list parameter "Metric Choice" (`Sales`, `Profit`), a calc "Chosen Metric" (`IF [Metric Choice] = 'Sales' THEN [Sales] ELSE [Profit] END`) replacing `sum(Profit)` on Profit by Category, and the parameter's control on the dashboard (2026-11-16). Desktop also re-split the flexible grid by itself (the human dragged nothing). Cleaned; directory replaced | committed: `references/parameters-list/` |
+| **REF-EVEN-SPLIT** | Desktop 2026.2.1: our build of two sheets side by side on a 1200x800 dashboard, both flexible with equal stored widths. Desktop showed them unequal (sized by content); the human dragged the divider back to 50/50 and saved (2026-11-16). Desktop wrote the left sheet as fixed 584 (= 592px − 8) and the right as flexible. Cleaned; directory replaced | committed: `references/even-split/` |
+| **OPEN-EVEN-SPLIT** | Fix PR #13 output opened in Desktop 2026.2.1 and showed even splits (2026-11-16): the REF-EVEN-SPLIT spec rebuilt (50/50) and `examples/superstore-mini` (two equal rows, equal sheets in the top row, legend column) | observation |
 | **OPEN-CSV**, **OPEN-SF** | `examples/superstore-mini` and the private Snowflake example opened correctly in Desktop 2026.2.1 (2026-11-10) | observation |
 | **OPEN-M2** | PR #5 output opened correctly (2026-11-16): superstore-mini (a legend, no filter control); `generated-m2.twb` next to REF-FILTERS, a rebuild with one legend (filter + legend); the private Snowflake example (two legends, one on a calculated field) | observation |
 | **OPEN-M3** | PR #10 output opened correctly in Desktop 2026.2.1 (2026-11-16): a REF-LAYOUT rebuild; title + text with no side column (fixed bottom row, fixed right sheet); a text box with no title; the private filters dashboard with 8px padding | observation |
@@ -191,6 +193,7 @@ opened it (OPEN-SF).
 | `<dashboard enable-sort-zone-taborder="true">`, `<size>`, `<zones>`; zone coordinates in 1/100000 of the dashboard | REF-CSV |
 | Outer padding is 8px per side: x = round(8/W·100000), y = round(8/H·100000), w = 100000 − 2x, h = 100000 − 2y (1000 wide: 800; 1200x800: 667/1000; 1400x900: 571/889) | REF-CSV, REF-LAYOUT, REF-FILTERS |
 | Title and text box: Desktop wraps the content in a `vert` `layout-flow` zone holding `<zone type-v2='title'>` (42px, no text stored: it shows the dashboard name), then `<zone type-v2='text'>` (25px for one line) with `<formatted-text><run>…</run></formatted-text>`, then the previous content. Both get margin 4 | REF-LAYOUT |
+| **Desktop ignores the stored size of flexible zones.** On open it re-splits flexible siblings by content (two equal flexible sheets showed at about 30/70), and a later save writes that split. An equal split has to be pinned: Desktop writes a 50/50 row as a fixed first sheet (592px → `fixed-size='584'`) plus a flexible last one. We pin every flexible row/sheet but the last to its equal px share, and Desktop then shows them equal. Builds before this fix (OPEN-CSV ... OPEN-M3) opened, but weren't evenly split | REF-EVEN-SPLIT, REF-PARAMS (rows and columns re-split, nothing dragged), OPEN-EVEN-SPLIT |
 | Fixed row: its `horz` container gets `fixed-size=<height px> is-fixed='true'`. Fixed sheet: `fixed-size=<width px − 8> is-fixed='true'` (fixed-size excludes the two 4px margins). Flexible siblings share the rest | REF-LAYOUT |
 | Title/text with no side column (our grid's `vert` nested in the title's `vert`), and a text box without a title, open fine | OPEN-M3 |
 | Desktop puts a dashboard's lone sheet straight in the root zone; our vert/horz grid containers open fine | REF-CSV, OPEN-CSV |
@@ -215,7 +218,7 @@ opened it (OPEN-SF).
 | Unverified / not emitted (layout) | Notes |
 |---|---|
 | Custom title text, multi-line or formatted text, text elsewhere than above the charts, floating zones, all-fixed rows/columns | No reference: the spec has no way to ask for them |
-| Desktop's own split of flexible space (unequal, content-based); we split equally | Accepted in `known-diffs.json` (private references, REF-PARAMS) |
+| Desktop's rounding of a fixed sheet's `w` (49334 for 592px at 1200 wide, where 592·100000/1200 = 49333.3) | One sample; we round (49333). Accepted in `references/even-split/known-diffs.json` |
 
 | Unverified / not emitted (legends) | Notes |
 |---|---|
