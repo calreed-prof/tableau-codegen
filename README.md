@@ -148,16 +148,17 @@ advisory only. **Ground truth is files saved by Desktop**; verified facts are in
 
 ## Golden-file workflow (how we learn new features)
 
-1. Build the smallest example of the feature in Tableau Desktop; *Save As* `.twb` into
-   `references/<feature>/desktop-saved.twb` (or `private/references/<feature>/` if it uses company data).
-2. `python3 scripts/refdiff.py clean <file>` (strips fingerprints/thumbnails), then replace any server,
-   username, database, schema and table names before committing.
-3. Write `references/<feature>/spec.json` for the same workbook, build it, and
-   `python3 scripts/refdiff.py diff <reference.twb> <generated.twb>`.
-4. Teach the compiler until the diff is only cosmetic. For a committed reference, add the case to
-   `CASES` in `tests/test_golden.py`. A private reference can't be used in CI, so build a scrubbed
-   committed equivalent or assert the specific XML in a unit test, and describe the private evidence
-   in the PR. Record the new facts in `docs/FORMAT.md`, then open the generated file in Desktop.
+Step by step in `references/README.md`. In short:
+1. Build the smallest example of the feature in Tableau Desktop; *Save As* `.twb` into a **new**
+   `references/<feature>/desktop-saved.twb` (or `private/references/<feature>/` for company data).
+2. `python3 scripts/refdiff.py clean <file>` (committed references), write a `spec.json` that rebuilds
+   it, and `python3 scripts/refdiff.py lock <dir>` (read-only + SHA-256 in `LOCK.json`).
+3. `python3 scripts/refdiff.py check <dir>` lists every claimed piece of XML (worksheet views,
+   filters, encodings, dashboard dependencies, control/legend zones, ...) that differs from Desktop.
+   `tests/test_references.py` runs it for all references; private ones locally only (skipped in CI),
+   so a private reference no longer needs hand-written expected XML in a unit test.
+4. Teach the compiler until `check` passes (or record an accepted difference with its reason in
+   `<dir>/known-diffs.json`), record the facts in `docs/FORMAT.md`, then open the output in Desktop.
 
 ## Private material
 

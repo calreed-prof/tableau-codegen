@@ -7,6 +7,10 @@ listed here, which mostly means structure copied from the references below. Unve
 reference before a feature builds on it, and `tabgen` must not grow new unverified XML (see
 `CLAUDE.md` → Evidence rule).
 
+`tests/test_references.py` rebuilds every reference's `spec.json` and compares the claimed XML
+(`scripts/refdiff.py` → `claims()`); accepted differences are listed with reasons in each
+reference's `known-diffs.json`.
+
 Evidence keys:
 - **REF-CSV**: `references/csv-basic/desktop-saved.twb` (Desktop 2026.2.1, textscan CSV, bar chart, dashboard).
   The committed copy was cleaned with `refdiff.py clean`: no fingerprint attributes, no thumbnails.

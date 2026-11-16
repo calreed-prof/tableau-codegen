@@ -17,6 +17,8 @@ Each item ships as its own PR, backed by a Desktop-saved reference. Done = merge
 - **M2 Legends (part 1, PR #5):** dashboard color legends for dimension color fields.
 - **M1 Filters (part 2, PR #7):** string dimension filters kept to 2+ values, controls from several
   data sources.
+- **Dev tooling (PR #8):** reference checks for every reference (private ones locally) and
+  hash-pinned references.
 
 ## Next (in order)
 - **M3 Layout:** row heights / column widths, dashboard title, text boxes.
