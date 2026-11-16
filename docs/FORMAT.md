@@ -31,6 +31,7 @@ maintainer can open them; their facts are summarised here and in PRs.
 | **REF-SF** | Desktop 2026.2.1: two live Snowflake tables (with extracts), parameters, filters, LOD calcs. Predates the `desktop-saved.twb` naming | private: `private/references/snowflake-basic/Book1.twb` |
 | **REF-FILTERS** | Desktop 2026.2.1 save of our generated Snowflake example (`spec.twb` next to it) plus, added by hand: a boolean LOD calc (`{ FIXED : MAX([RUN_TIMESTAMP]) } = [RUN_TIMESTAMP]`), a filter keeping it to True, its dashboard control, a color legend (2026-11-10). **The original file is lost:** it was saved over on 2026-11-16 (a Level filter was added, and the boolean control was re-laid out to 70px). Facts citing REF-FILTERS were recorded from the original | private: `private/references/filters-legends/` (current file + a `spec.json` describing it) |
 | **REF-FILTERS-CAT** | Desktop 2026.2.1: REF-FILTERS plus a filter keeping the string dimension `LEVEL` to two values and its dashboard control, so the dashboard has controls from two data sources (2026-11-16) | private: `private/references/filters-categorical/` |
+| **REF-LAYOUT** | Desktop 2026.2.1: `examples/superstore-mini` built by us, then by hand: top row fixed to 456px, its first sheet to 609px wide, Show Title, a text box above the charts (2026-11-16). Cleaned; directory replaced | committed: `references/layout-basic/` |
 | **OPEN-CSV**, **OPEN-SF** | `examples/superstore-mini` and the private Snowflake example opened correctly in Desktop 2026.2.1 (2026-11-10) | observation |
 | **OPEN-M2** | PR #5 output opened correctly (2026-11-16): superstore-mini (a legend, no filter control); `generated-m2.twb` next to REF-FILTERS, a rebuild with one legend (filter + legend); the private Snowflake example (two legends, one on a calculated field) | observation |
 | **OPEN-M1P2** | PR #7 output (`private/references/filters-categorical/generated.twb`) opened correctly (2026-11-16): side column shows Recent Run, Level (2 values) and the Metric legend, in that order; changing Level updates the chart | observation |
@@ -174,7 +175,12 @@ opened it (OPEN-SF).
 
 | Fact | Evidence |
 |---|---|
-| `<dashboard enable-sort-zone-taborder="true">`, `<size>`, `<zones>`; zone coordinates in 1/100000 of the dashboard; outer padding x=800 y=1000 w=98400 h=98000 | REF-CSV |
+| `<dashboard enable-sort-zone-taborder="true">`, `<size>`, `<zones>`; zone coordinates in 1/100000 of the dashboard | REF-CSV |
+| Outer padding is 8px per side: x = round(8/W·100000), y = round(8/H·100000), w = 100000 − 2x, h = 100000 − 2y (1000 wide: 800; 1200x800: 667/1000; 1400x900: 571/889) | REF-CSV, REF-LAYOUT, REF-FILTERS |
+| Title and text box: Desktop wraps the content in a `vert` `layout-flow` zone holding `<zone type-v2='title'>` (42px, no text stored: it shows the dashboard name), then `<zone type-v2='text'>` (25px for one line) with `<formatted-text><run>…</run></formatted-text>`, then the previous content. Both get margin 4 | REF-LAYOUT |
+| Fixed row: its `horz` container gets `fixed-size=<height px> is-fixed='true'`. Fixed sheet: `fixed-size=<width px − 8> is-fixed='true'` (fixed-size excludes the two 4px margins). Flexible siblings share the rest | REF-LAYOUT |
+| Desktop puts a dashboard's lone sheet straight in the root zone; our vert/horz grid containers open fine | REF-CSV, OPEN-CSV |
+| Color legend height grows with members: 66px for 2 (REF-FILTERS), 86px for 3 (REF-LAYOUT), i.e. 26 + 20·n from two samples. We always emit 66px | REF-FILTERS, REF-LAYOUT |
 | Root `layout-basic` zone, sheet zones with `zone-style` margin 4 (sheets) / 8 (root) | REF-CSV |
 | Nested `layout-flow` zones: `param="vert"` | REF-CSV (phone layout), REF-SF |
 | `param="horz"` | REF-SF |
@@ -189,6 +195,13 @@ opened it (OPEN-SF).
 | A side column holding legends only (no filter control); a legend on a calculated dimension | OPEN-M2 |
 | A legend adds nothing to the dashboard's `<datasources>` / `<datasource-dependencies>` (REF-FILTERS lists only the filter's field there, not `METRIC`) | REF-FILTERS |
 | Worksheet windows need `<cards>` (left: pages/filters/marks; top: columns/rows/title); dashboard windows need `<viewpoints>`, `<active>` | REF-CSV, OPEN-CSV |
+
+| Unverified / not emitted (layout) | Notes |
+|---|---|
+| Title or text box on a dashboard without a side column (we nest our grid's `vert` inside the title's `vert`) | REF-LAYOUT has a side column; needs an open (M3 PR) |
+| A text box without a title (text first in the wrapper) | REF-LAYOUT has both; needs an open (M3 PR) |
+| Custom title text, multi-line or formatted text, text elsewhere than above the charts, floating zones, all-fixed rows/columns | No reference: the spec has no way to ask for them |
+| Desktop's own split of flexible space (unequal, content-based); we split equally | Accepted in the private references' `known-diffs.json` |
 
 | Unverified / not emitted (legends) | Notes |
 |---|---|

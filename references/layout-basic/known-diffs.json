@@ -1,0 +1,4 @@
+{
+  "dashboard[Overview]/color zone[Sales by Region [federated.<id>].[none:Category:nk]]": "Legend height grows with the member count: 66px for 2 members (REF-FILTERS), 86px for 3 here (26px + 20px per member, from 2 samples); we always emit 66px because member counts aren't known at build time",
+  "dashboard[Overview]/zone 1.1.3.2.1 color:[federated.<id>].[none:Category:nk]:Sales by Region geometry": "Legend height grows with the member count: 66px for 2 members (REF-FILTERS), 86px for 3 here (26px + 20px per member, from 2 samples); we always emit 66px because member counts aren't known at build time"
+}

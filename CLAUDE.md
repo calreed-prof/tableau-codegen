@@ -7,9 +7,8 @@ before changing the compiler.
 
 ## Current status (keep this short; history lives in `ROADMAP.md` → Done)
 
-- **Next: M3 Layout** (row heights / column widths, dashboard title, text boxes). It should also fix
-  the outer padding (Desktop: x=571/y=889 at 1400x900; we use 800/1000) so `refdiff.py check` can
-  claim zone x/y.
+- **Next: M4 Parameters** (list parameters, parameter controls, calcs that use them). Needs a
+  reference; REF-SF has parameters but on company data.
 - **Waiting on a Desktop reference** (the human builds these; see `references/README.md`):
   - M2 part 2, size + continuous color legends: color a sheet by a measure, put a measure on size,
     show both legends on a dashboard → `private/references/legends-size/desktop-saved.twb`.

@@ -21,9 +21,11 @@ Each item ships as its own PR, backed by a Desktop-saved reference. Done = merge
   data sources.
 - **Dev tooling (PR #8):** reference checks for every reference (private ones locally) and
   hash-pinned references. The read-only bit is local only: re-run `refdiff.py lock` after a clone.
+- **PR #9:** docs clarity pass.
+- **M3 Layout (PR #10):** Desktop's 8px padding, fixed row heights / column widths, dashboard title,
+  one-line text box; `check` now claims the zone tree and every zone's geometry.
 
 ## Next (in order)
-- **M3 Layout:** row heights / column widths, dashboard title, text boxes.
 - **M2 Legends (part 2):** size and continuous color legends; needs a reference (see `CLAUDE.md`).
 - **M1 Filters (part 3):** single values, exclude, numeric/date ranges, top-N; each needs a reference.
 - **M4 Parameters:** list parameters, parameter controls, calcs that reference parameters

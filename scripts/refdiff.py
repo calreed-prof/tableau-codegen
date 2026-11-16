@@ -89,6 +89,28 @@ def canon(el):
 ZONE_KEYS = ("name", "type-v2", "param", "values", "pane-specification-id", "h", "w")
 
 
+GEOMETRY_KEYS = ("x", "y", "w", "h", "fixed-size", "is-fixed")
+
+
+def _label(z):
+    kind = z.get("type-v2") or "sheet"
+    bits = [kind] + [_norm(z.get(k)) for k in ("param", "name") if z.get(k)]
+    return ":".join(bits)
+
+
+def _tree(z):
+    """Zone structure without geometry, e.g. layout-basic(layout-flow:vert(title,...))."""
+    kids = [c for c in z if c.tag == "zone"]
+    return _label(z) + ("(" + ",".join(_tree(c) for c in kids) + ")" if kids else "")
+
+
+def _paths(z, path):
+    """(dotted index path, zone) for every zone, e.g. 1, 1.1, 1.1.2."""
+    yield f"{path} {_label(z)}", z
+    for i, c in enumerate((c for c in z if c.tag == "zone"), 1):
+        yield from _paths(c, f"{path}.{i}")
+
+
 def claims(root):
     """{claim key: canonical value} for everything the compiler claims to reproduce."""
     out = {}
@@ -118,7 +140,12 @@ def claims(root):
             for z in mine:  # one claim per zone, so a known diff can't hide the others
                 key = f"dashboard[{name}]/{kind} zone[{z.get('name')} {_norm(z.get('param', ''))}]"
                 out[key] = {k: _norm(z.get(k)) for k in ZONE_KEYS if z.get(k) is not None}
-        side = [z for z in zones if z.get("is-fixed") == "true"]
+        top = db.find("zones/zone")
+        out[f"dashboard[{name}]/zone tree"] = _tree(top)
+        for path, z in _paths(top, "1"):
+            out[f"dashboard[{name}]/zone {path} geometry"] = {
+                k: z.get(k) for k in GEOMETRY_KEYS if z.get(k) is not None}
+        side = [z for z in zones if z.get("is-fixed") == "true" and z.get("param") == "vert"]
         out[f"dashboard[{name}]/side column"] = [
             str({k: z.get(k) for k in ("fixed-size", "is-fixed", "param", "type-v2", "w")}) for z in side]
     return out
