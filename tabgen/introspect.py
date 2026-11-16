@@ -1,4 +1,5 @@
-"""Read an existing .twb and emit spec 'datasources' blocks (connection + columns + calcs).
+"""Read an existing .twb and emit spec 'datasources' blocks (connection + columns + calcs), plus
+the string list 'parameters' those calcs use.
 
 Lets you start a new spec from tables your existing workbooks already connect to.
 """
@@ -14,9 +15,35 @@ def _slug(text):
     return re.sub(r"[^a-z0-9]+", "_", text.lower()).strip("_") or "ds"
 
 
+def _unquote(v):
+    return v[1:-1] if v and len(v) >= 2 and v[0] == v[-1] == '"' else None
+
+
+def _parameters(root):
+    """{internal name: (caption, spec)} for parameters the compiler supports: string, a plain list of
+    values (no aliases), values without '"' or '\\'. Others map to None, so calcs using them are dropped."""
+    out = {}
+    for ds in root.findall("datasources/datasource"):
+        if ds.get("name") != "Parameters":
+            continue
+        for c in ds.findall("column"):
+            name = c.get("name", "").strip("[]")
+            members = c.findall("members/member")
+            values = [_unquote(m.get("value")) for m in members]
+            value = _unquote(c.get("value"))
+            ok = (c.get("datatype") == "string" and c.get("param-domain-type") == "list" and c.get("caption")
+                  and values and all(values) and not any(m.get("alias") is not None for m in members)
+                  and not any('"' in v or "\\" in v for v in values) and value in values
+                  and len(set(values)) == len(values))
+            out[name] = (c.get("caption"), {"type": "string", "values": values, "value": value}) if ok else None
+    return out
+
+
 def introspect(path):
     root = ET.parse(path).getroot()
     out = {}
+    params = _parameters(root)
+    used_params = {}
     for ds in root.find("datasources") or []:
         conn = ds.find("connection")
         if conn is None or conn.get("class") != "federated":
@@ -53,9 +80,17 @@ def introspect(path):
             columns[name] = entry["type"] if list(entry) == ["type"] else entry
         for name, c in meta.items():
             calc = c.find("calculation")
-            if calc is None or not c.get("caption") or "[Parameters]" in (calc.get("formula") or ""):
+            if calc is None or not c.get("caption"):
                 continue
-            calcs[c.get("caption")] = {"formula": calc.get("formula"), "type": c.get("datatype"),
+            formula = calc.get("formula") or ""
+            refs = re.findall(r"\[Parameters\]\.\[([^\]]+)\]", formula)
+            if any(params.get(r) is None for r in refs):
+                continue  # uses a parameter the compiler can't write yet
+            for r in refs:
+                caption, pspec = params[r]
+                used_params[caption] = pspec
+                formula = formula.replace(f"[Parameters].[{r}]", f"[{caption}]")
+            calcs[c.get("caption")] = {"formula": formula, "type": c.get("datatype"),
                                        "role": c.get("role")}
 
         if cls == "snowflake":
@@ -80,4 +115,6 @@ def introspect(path):
         while key in out:
             key += "_2"
         out[key] = block
+    if used_params:
+        return {"parameters": used_params, "datasources": out}
     return {"datasources": out}

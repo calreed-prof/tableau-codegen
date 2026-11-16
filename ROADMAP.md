@@ -24,12 +24,15 @@ Each item ships as its own PR, backed by a Desktop-saved reference. Done = merge
 - **PR #9:** docs clarity pass.
 - **M3 Layout (PR #10):** Desktop's 8px padding, fixed row heights / column widths, dashboard title,
   one-line text box; `check` now claims the zone tree and every zone's geometry.
+- **M4 Parameters (part 1, PR #12):** string list parameters, calcs that use them, dashboard
+  parameter controls; `introspect` keeps those calcs; `check` also claims calcs and the Parameters
+  source.
 
 ## Next (in order)
 - **M2 Legends (part 2):** size and continuous color legends; needs a reference (see `CLAUDE.md`).
 - **M1 Filters (part 3):** single values, exclude, numeric/date ranges, top-N; each needs a reference.
-- **M4 Parameters:** list parameters, parameter controls, calcs that reference parameters
-  (lets `introspect` keep parameter-driven calcs).
+- **M4 Parameters (part 2):** number/date parameters, ranges, aliases, controls next to filter
+  controls; each needs a reference.
 - **M5 Formatting:** number formats, axis ranges, sort order, mark labels.
 - **M6 Spec v2:** YAML (or a small DSL) front end over the same compiler; JSON stays supported.
 - **M7 AI authoring:** plain English → spec via the Claude API, validated by the compiler's errors in

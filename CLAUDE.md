@@ -7,16 +7,10 @@ before changing the compiler.
 
 ## Current status (keep this short; history lives in `ROADMAP.md` → Done)
 
-- **Next: M4 Parameters** (list parameters, parameter controls, calcs that use them). Needs a
-  committed reference (REF-SF has parameters, but on company data). Human, in Desktop, from
-  `python3 -m tabgen build examples/superstore-mini/spec.json --open`:
-  1. Create a string parameter "Metric Choice" with a list of values `Sales`, `Profit`.
-  2. Create a calc "Chosen Metric": `IF [Metric Choice] = 'Sales' THEN [Sales] ELSE [Profit] END`.
-  3. On "Profit by Category", replace `sum(Profit)` with `sum(Chosen Metric)`.
-  4. On the Overview dashboard, show the parameter control (sheet menu → Parameters → Metric Choice).
-  5. *Save As* → `references/parameters-list/desktop-saved.twb` (new folder).
-  Then the agent follows `references/README.md`: `refdiff.py clean`, replace the CSV directory with
-  `/path/to/references/parameters-list`, copy `sales.csv`, write `spec.json`, `lock`, `check`.
+- **Next: M2 Legends part 2** once its reference below exists. M4 Parameters part 1 (string list
+  parameters + controls, PR #12) is done once the human opens its output in Desktop (OPEN-M4):
+  `python3 -m tabgen build references/parameters-list/spec.json -o out/params.twb --open`, switch
+  Metric Choice to Profit, and check that Profit by Category changes.
 - **Waiting on a Desktop reference** (the human builds these; see `references/README.md`):
   - M2 part 2, size + continuous color legends: color a sheet by a measure, put a measure on size,
     show both legends on a dashboard → `private/references/legends-size/desktop-saved.twb`.

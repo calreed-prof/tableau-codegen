@@ -107,6 +107,7 @@ class DataSource:
         self.key = key
         self.columns = {}   # internal name -> column dict
         self.lookup = {}    # name or caption -> internal name
+        self.params = None  # the workbook's Parameters, set by make_source
 
     def add_column(self, col):
         self.columns[col["name"]] = col
@@ -165,6 +166,11 @@ class DataSource:
         if "formula" in c:
             sub(el, "calculation", **{"class": "tableau", "formula": c["formula"]})
         return el
+
+    def params_used(self, cols):
+        """Parameter columns that the given columns' formulas reference, sorted by internal name."""
+        found = {p["name"]: p for c in cols for p in self.params.used_by(c.get("formula"))}
+        return [found[k] for k in sorted(found)]
 
     def physical(self):
         return [c for c in self.columns.values() if "formula" not in c]
@@ -259,7 +265,7 @@ class CsvSource(DataSource):
                 self.column_xml(ds, c)
         sub(ds, "column", caption=self.fname, datatype="table",
             name=f"[__tableau_internal_object_id__].[{self.object_id}]", role="measure", type="quantitative")
-        finish_datasource(ds, self.fname, self.object_id, self._relation)
+        finish_datasource(ds, self, self.fname, self._relation)
         return ds
 
 
@@ -341,27 +347,112 @@ class SnowflakeSource(DataSource):
             self.column_xml(ds, c)
         sub(ds, "column", caption=self.table, datatype="table",
             name=f"[__tableau_internal_object_id__].[{self.object_id}]", role="measure", type="quantitative")
-        finish_datasource(ds, self.table, self.object_id, self._relation)
+        finish_datasource(ds, self, self.table, self._relation)
         return ds
 
 
-def finish_datasource(ds, obj_caption, object_id, relation_fn):
+def finish_datasource(ds, src, obj_caption, relation_fn):
     sub(ds, "layout", dim_ordering="alphabetic", measure_ordering="alphabetic", show_structure="true")
     sv = sub(ds, "semantic-values")
     sub(sv, "semantic-value", key="[Country].[Name]", value='"United States"')
-    obj = sub(sub(sub(ds, "object-graph"), "objects"), "object", caption=obj_caption, id=object_id)
+    params = src.params_used(src.columns.values())
+    if params:
+        # Parameters this source's calcs use, without their members (REF-PARAMS).
+        src.params.deps_xml(ds, params)
+    obj = sub(sub(sub(ds, "object-graph"), "objects"), "object", caption=obj_caption, id=src.object_id)
     relation_fn(sub(obj, "properties", context=""))
 
 
-def make_source(key, spec, base_dir):
+class Parameters:
+    """The workbook's parameters: Desktop keeps them in a pseudo data source named 'Parameters'
+    (hasconnection='false'), each a <column> whose calculation is its current value (REF-PARAMS).
+    Only string parameters with a list of allowed values are backed by a reference."""
+    NAME = "Parameters"
+    REF = re.compile(r"\[Parameters\]\.\[(Parameter \d+)\]")
+
+    def __init__(self, spec):
+        if not isinstance(spec, dict):
+            raise SpecError("'parameters' must be a map of name -> {\"type\": \"string\", \"values\": [...]}")
+        self.params = {}   # caption -> column dict
+        self.by_name = {}  # internal name -> column dict
+        for caption, p in spec.items():
+            if not caption or any(ch in caption for ch in "[]"):
+                raise SpecError(f"Parameter {caption!r}: the name can't be empty or contain '[' or ']'")
+            if not isinstance(p, dict) or not set(p) <= {"type", "values", "value"}:
+                raise SpecError(f"Parameter {caption!r} must be {{\"type\": \"string\", \"values\": [...], "
+                                f"\"value\": ...}} (value optional)")
+            if p.get("type", "string") != "string":
+                raise SpecError(f"Parameter {caption!r}: only string parameters are supported yet")
+            values = p.get("values")
+            if (not isinstance(values, list) or not values or not all(isinstance(v, str) for v in values)
+                    or len(set(values)) != len(values)):
+                raise SpecError(f"Parameter {caption!r}: 'values' must be a list of different strings, "
+                                f"e.g. [\"Sales\", \"Profit\"] (only list parameters are supported yet)")
+            if any(not v or '"' in v or "\\" in v for v in values):
+                raise SpecError(f"Parameter {caption!r}: values can't be empty or contain '\"' or '\\' yet "
+                                f"(no reference for how Desktop writes them)")
+            value = p.get("value", values[0])
+            if value not in values:
+                raise SpecError(f"Parameter {caption!r}: 'value' {value!r} is not one of its 'values'")
+            internal = "Parameter " + str(int(sid("param" + caption), 16))[:16]
+            col = {"name": internal, "caption": caption, "value": f'"{value}"',
+                   "members": [f'"{v}"' for v in values]}
+            self.params[caption] = col
+            self.by_name[internal] = col
+
+    def rewrite(self, formula):
+        """Spec formulas name a parameter as [Caption]; Desktop writes [Parameters].[Parameter N]."""
+        def repl(m):
+            col = self.params.get(m.group(1))
+            return f"[Parameters].[{col['name']}]" if col else m.group(0)
+        return re.sub(r"(?<![\].])\[([^\[\]]+)\]", repl, formula)
+
+    def used_by(self, formula):
+        """Parameter columns a formula references, in order of first use."""
+        out = []
+        for name in self.REF.findall(formula or ""):
+            if self.by_name[name] not in out:
+                out.append(self.by_name[name])
+        return out
+
+    def column_xml(self, parent, p, members=False):
+        el = sub(parent, "column", caption=p["caption"], datatype="string", name=f"[{p['name']}]",
+                 param_domain_type="list", role="measure", type="nominal", value=p["value"])
+        sub(el, "calculation", **{"class": "tableau", "formula": p["value"]})
+        if members:
+            ms = sub(el, "members")
+            for m in p["members"]:
+                sub(ms, "member", value=m)
+        return el
+
+    def deps_xml(self, parent, params, members=False):
+        deps = sub(parent, "datasource-dependencies", datasource=self.NAME)
+        for p in params:
+            self.column_xml(deps, p, members)
+
+    def to_xml(self, parent):
+        ds = sub(parent, "datasource", hasconnection="false", inline="true", name=self.NAME, version=TWB_VERSION)
+        sub(ds, "aliases", enabled="yes")
+        for p in self.params.values():
+            self.column_xml(ds, p, members=True)
+
+
+def make_source(key, spec, base_dir, params):
     if "csv" in spec:
         src = CsvSource(key, spec, base_dir)
     elif "snowflake" in spec:
         src = SnowflakeSource(key, spec)
     else:
         raise SpecError(f"Data source {key!r} needs a 'csv' or 'snowflake' block")
+    clash = sorted(set(params.params) & (set(src.lookup) | set(spec.get("calcs", {}))))
+    if clash:
+        raise SpecError(f"Parameter {clash[0]!r} has the same name as a field in data source {key!r}; "
+                        f"rename one so [{clash[0]}] in a formula is unambiguous")
     for caption, calc in spec.get("calcs", {}).items():
+        calc = {"formula": calc} if isinstance(calc, str) else dict(calc)
+        calc["formula"] = params.rewrite(calc["formula"])
         src.add_calc(caption, calc)
+    src.params = params
     return src
 
 
@@ -413,8 +504,8 @@ def worksheet_xml(parent, name, spec, ds):
     ws = sub(parent, "worksheet", name=name)
     table = sub(ws, "table")
     view = sub(table, "view")
-    sub(sub(view, "datasources"), "datasource", caption=ds.caption, name=ds.name)
-    deps = sub(view, "datasource-dependencies", datasource=ds.name)
+    dss = sub(view, "datasources")
+    sub(dss, "datasource", caption=ds.caption, name=ds.name)
 
     used = {}
 
@@ -440,6 +531,13 @@ def worksheet_xml(parent, name, spec, ds):
         dep_cols[col["name"]] = col
         for inp in ds.calc_inputs(col):
             dep_cols.setdefault(inp["name"], inp)
+    params = ds.params_used(col for col, _ in used.values())
+    if params:
+        # A used calc names a parameter: the sheet lists the Parameters source, and its
+        # dependencies (no members) come before the data source's (REF-PARAMS).
+        sub(dss, "datasource", name=ds.params.NAME)
+        ds.params.deps_xml(view, params)
+    deps = sub(view, "datasource-dependencies", datasource=ds.name)
     for cname in sorted(dep_cols):
         ds.column_xml(deps, dep_cols[cname])
     for _, inst in sorted(used.values(), key=lambda x: x[1]["name"]):
@@ -483,6 +581,7 @@ SIDE_PX = 160         # Desktop's fixed-width column for filter controls/legends
 FILTER_CARD_PX = {"boolean": 89,   # boolean filter control (REF-FILTERS)
                   "string": 203}   # multi-value list control (REF-FILTERS-CAT)
 LEGEND_PX = 66        # height Desktop gave a categorical color legend (REF-FILTERS)
+PARAM_CTRL_PX = 52    # compact (drop-down) parameter control (REF-PARAMS)
 PAD_PX = 8            # outer padding: x = 8px of the width, y = 8px of the height (REF-LAYOUT, REF-FILTERS)
 TITLE_PX = 42         # dashboard title zone (REF-LAYOUT)
 TEXT_PX = 25          # one-line text box (REF-LAYOUT)
@@ -590,7 +689,29 @@ def dashboard_legends(name, spec, sheets, sheet_source):
     return out
 
 
-def dashboard_xml(parent, name, spec, ids, controls=(), legends=()):
+def dashboard_params(name, spec, params):
+    """Validate a dashboard's "parameters" list; return the parameter columns to show controls for.
+    Backed by REF-PARAMS: one compact control, below a color legend. A dashboard with both filter
+    controls and parameter controls has no reference yet (their order is unknown), so it's an error."""
+    wanted = spec.get("parameters", [])
+    if not isinstance(wanted, list) or not all(isinstance(p, str) for p in wanted):
+        raise SpecError(f"Dashboard {name!r}: 'parameters' must be a list of parameter names, "
+                        f"e.g. [\"Metric Choice\"]")
+    out = []
+    for p in wanted:
+        if p not in params.params:
+            known = ", ".join(params.params) or "none defined"
+            raise SpecError(f"Dashboard {name!r}: unknown parameter {p!r} (top-level 'parameters': {known})")
+        if params.params[p] in out:
+            raise SpecError(f"Dashboard {name!r}: parameter {p!r} is listed twice")
+        out.append(params.params[p])
+    if out and spec.get("filters"):
+        raise SpecError(f"Dashboard {name!r}: filter controls and parameter controls on the same dashboard "
+                        f"aren't supported yet (no Desktop reference for how they stack)")
+    return out
+
+
+def dashboard_xml(parent, name, spec, ids, controls=(), legends=(), params=(), param_src=None):
     W, H = spec.get("size", [1200, 800])
     db = sub(parent, "dashboard", enable_sort_zone_taborder="true", name=name)
     sub(db, "style")
@@ -612,6 +733,10 @@ def dashboard_xml(parent, name, spec, ids, controls=(), legends=()):
                 ds.column_xml(deps, c)
             for inst in sorted((ds.ref(f, "none")[1] for f in fields), key=lambda i: i["name"]):
                 sub(deps, "column-instance", **inst)
+    if params:
+        # The Parameters source, with each shown parameter and its members (REF-PARAMS).
+        sub(sub(db, "datasources"), "datasource", name=param_src.NAME)
+        param_src.deps_xml(db, params, members=True)
     zones = sub(db, "zones")
     grid = spec["layout"]
     heights, widths = dashboard_layout(name, spec)
@@ -636,7 +761,7 @@ def dashboard_xml(parent, name, spec, ids, controls=(), legends=()):
             zone_style(z, "4")
             y += th
     CH = Y0 + IH - y  # height left for the grid (and side column)
-    side = bool(controls or legends)
+    side = bool(controls or legends or params)
     side_w = round(SIDE_PX * ux) if side else 0
     GW = IW - side_w
     if side:
@@ -682,6 +807,13 @@ def dashboard_xml(parent, name, spec, ids, controls=(), legends=()):
                     type_v2="color", w=side_w, x=sx, y=y)
             zone_style(z, "4")
             y += lh
+        ph = round(PARAM_CTRL_PX * uy)
+        for p in params:
+            # Parameter controls below the legends, compact (drop-down) mode, no sheet name (REF-PARAMS).
+            z = sub(col, "zone", h=ph, id=next(ids), mode="compact", param=f"[{param_src.NAME}].[{p['name']}]",
+                    type_v2="paramctrl", w=side_w, x=sx, y=y)
+            zone_style(z, "4")
+            y += ph
     zone_style(root, "8")
     sub(db, "simple-id", uuid=guid("db" + name))
 
@@ -719,10 +851,13 @@ def build(spec, base_dir):
     sub(prefs, "preference", name="ui.encoding.shelf.height", value="24")
     sub(prefs, "preference", name="ui.shelf.height", value="26")
 
-    sources = {k: make_source(k, v, base_dir) for k, v in spec["datasources"].items()}
+    params = Parameters(spec.get("parameters", {}))
+    sources = {k: make_source(k, v, base_dir, params) for k, v in spec["datasources"].items()}
     dsx = sub(wb, "datasources")
     for ds in sources.values():
         ds.to_xml(dsx)
+    if params.params:
+        params.to_xml(dsx)  # after the real data sources (REF-PARAMS)
 
     default_ds = next(iter(sources.values()))
 
@@ -749,7 +884,8 @@ def build(spec, base_dir):
                     if s not in spec["sheets"]:
                         raise SpecError(f"Dashboard {name!r} references unknown sheet {s!r}")
             dashboard_xml(dbs, name, d, ids, dashboard_controls(name, d, spec["sheets"], sheet_source),
-                          dashboard_legends(name, d, spec["sheets"], sheet_source))
+                          dashboard_legends(name, d, spec["sheets"], sheet_source),
+                          dashboard_params(name, d, params), params)
 
     windows_xml(wb, list(spec["sheets"]), dashboards)
     ET.indent(wb, space="  ")

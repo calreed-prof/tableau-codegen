@@ -32,6 +32,7 @@ maintainer can open them; their facts are summarised here and in PRs.
 | **REF-FILTERS** | Desktop 2026.2.1 save of our generated Snowflake example (`spec.twb` next to it) plus, added by hand: a boolean LOD calc (`{ FIXED : MAX([RUN_TIMESTAMP]) } = [RUN_TIMESTAMP]`), a filter keeping it to True, its dashboard control, a color legend (2026-11-10). **The original file is lost:** it was saved over on 2026-11-16 (a Level filter was added, and the boolean control was re-laid out to 70px). Facts citing REF-FILTERS were recorded from the original | private: `private/references/filters-legends/` (current file + a `spec.json` describing it) |
 | **REF-FILTERS-CAT** | Desktop 2026.2.1: REF-FILTERS plus a filter keeping the string dimension `LEVEL` to two values and its dashboard control, so the dashboard has controls from two data sources (2026-11-16) | private: `private/references/filters-categorical/` |
 | **REF-LAYOUT** | Desktop 2026.2.1: `examples/superstore-mini` built by us, then by hand: top row fixed to 456px, its first sheet to 609px wide, Show Title, a text box above the charts (2026-11-16). Cleaned; directory replaced | committed: `references/layout-basic/` |
+| **REF-PARAMS** | Desktop 2026.2.1: `examples/superstore-mini` built by us, then by hand: a string list parameter "Metric Choice" (`Sales`, `Profit`), a calc "Chosen Metric" (`IF [Metric Choice] = 'Sales' THEN [Sales] ELSE [Profit] END`) replacing `sum(Profit)` on Profit by Category, and the parameter's control on the dashboard (2026-11-16). Desktop also re-split the flexible grid by itself (the human dragged nothing). Cleaned; directory replaced | committed: `references/parameters-list/` |
 | **OPEN-CSV**, **OPEN-SF** | `examples/superstore-mini` and the private Snowflake example opened correctly in Desktop 2026.2.1 (2026-11-10) | observation |
 | **OPEN-M2** | PR #5 output opened correctly (2026-11-16): superstore-mini (a legend, no filter control); `generated-m2.twb` next to REF-FILTERS, a rebuild with one legend (filter + legend); the private Snowflake example (two legends, one on a calculated field) | observation |
 | **OPEN-M3** | PR #10 output opened correctly in Desktop 2026.2.1 (2026-11-16): a REF-LAYOUT rebuild; title + text with no side column (fixed bottom row, fixed right sheet); a text box with no title; the private filters dashboard with 8px padding | observation |
@@ -83,7 +84,18 @@ Each used field also appears in the worksheet's `<datasource-dependencies>` as a
 | Row-level measures (e.g. `[X] / 100`) go on shelves with a normal aggregation (`avg:Calculation_...`); aggregate calcs (`SUM(..)/SUM(..)`) use `usr:` | OPEN-SF, OPEN-CSV |
 | A sheet's `<datasource-dependencies>` also lists the columns a used calc names (e.g. `[METRIC]` for `IF [METRIC] = ...`), as `<column>` only, with no `<column-instance>`; all columns sorted by name | REF-FILTERS (two sheets) |
 | Boolean calc: `datatype="boolean" role="dimension" type="nominal"`, on shelves/filters as `[none:Calculation_...:nk]` | REF-FILTERS |
-| Calcs that reference `[Parameters].[...]` need the Parameters datasource (not supported yet; `introspect` drops them) | REF-SF |
+| A calc names a parameter as `[Parameters].[Parameter <digits>]` (internal name, not the caption). The spec writes `[Caption]` and the compiler rewrites it | REF-PARAMS, REF-SF |
+| A data source whose calcs use parameters lists them in a `<datasource-dependencies datasource='Parameters'>` (parameter `<column>` without `<members>`) after `<semantic-values>`, before `<object-graph>` | REF-PARAMS |
+| A sheet using such a calc adds `<datasource name='Parameters' />` (no caption) after its data source in `<view><datasources>`, and a Parameters `<datasource-dependencies>` (no members) **before** the data source's | REF-PARAMS |
+| Calcs whose inputs are calcs that use a parameter: we list only the parameters a sheet's used calcs name directly; several parameters in one dependency block are sorted by internal name | **Unverified**: REF-PARAMS has one parameter, used directly |
+
+## Parameters
+
+| Fact | Evidence |
+|---|---|
+| Parameters live in a pseudo source after the real ones: `<datasource hasconnection='false' inline='true' name='Parameters' version='18.1'>` with `<aliases enabled='yes'/>`, then one `<column>` per parameter | REF-PARAMS, REF-SF |
+| String list parameter: `<column caption=<name> datatype='string' name='[Parameter <digits>]' param-domain-type='list' role='measure' type='nominal' value='"<current>"'>`, `<calculation class='tableau' formula='"<current>"'/>`, `<members><member value='"<v>"'/>…</members>` in list order | REF-PARAMS, REF-SF |
+| Integer/real/date/boolean parameters, range or "all" domains, member aliases (display names), values containing `"` or `\` | **No reference**: the spec rejects them, `introspect` drops calcs that use them |
 
 ## Filters
 
@@ -196,12 +208,14 @@ opened it (OPEN-SF).
 | Color legend: `<zone name=<sheet> pane-specification-id='0' param=<sheet's color field ref> type-v2='color'>`, margin 4, h = 66px, in the same side column below the filter controls | REF-FILTERS |
 | A side column holding legends only (no filter control); a legend on a calculated dimension | OPEN-M2 |
 | A legend adds nothing to the dashboard's `<datasources>` / `<datasource-dependencies>` (REF-FILTERS lists only the filter's field there, not `METRIC`) | REF-FILTERS |
+| Parameter control: `<zone mode='compact' param='[Parameters].[Parameter <digits>]' type-v2='paramctrl'>` (no `name`), margin 4, h = 52px, in the side column below a color legend. The dashboard gets `<datasources><datasource name='Parameters'/></datasources>` and a Parameters `<datasource-dependencies>` with the parameter's `<members>` | REF-PARAMS |
+| Filter controls and parameter controls on one dashboard (order in the side column, and of the two sources in `<datasources>`) | **No reference**: a spec error |
 | Worksheet windows need `<cards>` (left: pages/filters/marks; top: columns/rows/title); dashboard windows need `<viewpoints>`, `<active>` | REF-CSV, OPEN-CSV |
 
 | Unverified / not emitted (layout) | Notes |
 |---|---|
 | Custom title text, multi-line or formatted text, text elsewhere than above the charts, floating zones, all-fixed rows/columns | No reference: the spec has no way to ask for them |
-| Desktop's own split of flexible space (unequal, content-based); we split equally | Accepted in the private references' `known-diffs.json` |
+| Desktop's own split of flexible space (unequal, content-based); we split equally | Accepted in `known-diffs.json` (private references, REF-PARAMS) |
 
 | Unverified / not emitted (legends) | Notes |
 |---|---|

@@ -369,6 +369,93 @@ class SnowflakeTests(unittest.TestCase):
         self.assertIn("introspect", str(cm.exception))
 
 
+class ParameterTests(unittest.TestCase):
+    """M4 parameters (REF-PARAMS: references/parameters-list)."""
+
+    def compile(self, s):
+        return ET.fromstring(build(s, EXAMPLE))
+
+    PARAMS = {"Metric Choice": {"type": "string", "values": ["Sales", "Profit"]}}
+    CHOSEN = "IF [Metric Choice] = 'Sales' THEN [Sales] ELSE [Profit] END"
+
+    def params_spec(self, params=None, calcs=None, dashboard=None, sheets=None):
+        return spec(parameters=self.PARAMS if params is None else params,
+                    datasources={"sales": {"csv": "sales.csv",
+                                           "calcs": calcs or {"Chosen Metric": self.CHOSEN}}},
+                    sheets=sheets or {"S1": {"rows": "Category", "cols": "sum(Chosen Metric)"},
+                                      "S2": {"cols": "Region", "rows": "sum(Sales)"}},
+                    dashboards={"D": dashboard or {"layout": [["S1", "S2"]], "parameters": ["Metric Choice"]}})
+
+    def test_parameter_source_and_formula(self):
+        wb = self.compile(self.params_spec())
+        dss = wb.findall("datasources/datasource")
+        self.assertEqual([d.get("name") for d in dss][1:], ["Parameters"])  # after the real sources
+        p = dss[1].find("column")
+        self.assertEqual((p.get("caption"), p.get("param-domain-type"), p.get("value")),
+                         ("Metric Choice", "list", '"Sales"'))
+        self.assertRegex(p.get("name"), r"^\[Parameter \d{16}\]$")
+        self.assertEqual(p.find("calculation").get("formula"), '"Sales"')
+        self.assertEqual([m.get("value") for m in p.findall("members/member")], ['"Sales"', '"Profit"'])
+        calc = [c for c in dss[0].findall("column") if c.get("caption") == "Chosen Metric"][0]
+        self.assertEqual(calc.find("calculation").get("formula"),
+                         f"IF [Parameters].{p.get('name')} = 'Sales' THEN [Sales] ELSE [Profit] END")
+        # The data source lists the parameter its calc uses, without members, before object-graph.
+        tags = [c.tag for c in dss[0]]
+        self.assertLess(tags.index("datasource-dependencies"), tags.index("object-graph"))
+        dep = dss[0].find("datasource-dependencies")
+        self.assertEqual(dep.get("datasource"), "Parameters")
+        self.assertIsNone(dep.find("column/members"))
+
+    def test_parameter_sheet_dependencies(self):
+        wb = self.compile(self.params_spec())
+        s1, s2 = wb.findall(".//worksheet/table/view")
+        self.assertEqual([d.get("name") for d in s1.findall("datasources/datasource")][1], "Parameters")
+        self.assertEqual([d.get("datasource") for d in s1.findall("datasource-dependencies")][0], "Parameters")
+        self.assertEqual(len(s2.findall("datasources/datasource")), 1)  # doesn't use the calc
+        self.assertEqual(len(s2.findall("datasource-dependencies")), 1)
+
+    def test_parameter_control_zone(self):
+        wb = self.compile(self.params_spec())
+        db = wb.find(".//dashboard")
+        self.assertEqual([d.get("name") for d in db.findall("datasources/datasource")], ["Parameters"])
+        self.assertEqual(len(db.findall("datasource-dependencies/column/members/member")), 2)
+        z = [z for z in db.iter("zone") if z.get("type-v2") == "paramctrl"][0]
+        self.assertEqual((z.get("mode"), z.get("name"), z.get("h")), ("compact", None, "6500"))  # 52px of 800
+        self.assertTrue(z.get("param").startswith("[Parameters].[Parameter "))
+
+    def test_no_parameters_no_source(self):
+        wb = self.compile(spec())
+        self.assertNotIn("Parameters", [d.get("name") for d in wb.findall("datasources/datasource")])
+
+    def test_parameter_errors(self):
+        cases = [
+            (self.params_spec(params={"P": {"type": "integer", "values": ["1", "2"]}}), "only string"),
+            (self.params_spec(params={"P": {"values": []}}), "'values' must be"),
+            (self.params_spec(params={"P": {"values": ["a", "a"]}}), "'values' must be"),
+            (self.params_spec(params={"P": {"values": ['a"b']}}), "can't be empty"),
+            (self.params_spec(params={"P": {"values": ["a"], "value": "b"}}), "not one of"),
+            (self.params_spec(params={"P": {"values": ["a"], "range": [1, 2]}}), "must be"),
+            (self.params_spec(params={"Region": {"values": ["a"]}}), "same name as a field"),
+            (self.params_spec(params={"Chosen Metric": {"values": ["a"]}}), "same name as a field"),
+            (self.params_spec(dashboard={"layout": [["S1"]], "parameters": ["Nope"]}), "unknown parameter"),
+            (self.params_spec(dashboard={"layout": [["S1"]], "parameters": "Metric Choice"}), "list of parameter"),
+            (self.params_spec(sheets={"S1": {"rows": "Category", "filters": {"Region": ["East", "West"]}}},
+                              dashboard={"layout": [["S1"]], "parameters": ["Metric Choice"],
+                                         "filters": [{"sheet": "S1", "field": "Region"}]}), "aren't supported yet"),
+        ]
+        for s, msg in cases:
+            with self.subTest(msg=msg), self.assertRaises(SystemExit) as cm:
+                build(s, EXAMPLE)
+            self.assertIn(msg, str(cm.exception))
+
+    def test_parameter_rewrite_leaves_qualified_refs(self):
+        wb = self.compile(self.params_spec(calcs={"C": "[Metric Choice] + [Parameters].[Metric Choice]"},
+                                                 sheets={"S1": {"rows": "Category"}, "S2": {"rows": "Region"}}))
+        f = [c for c in wb.findall("datasources/datasource/column") if c.get("caption") == "C"][0]
+        self.assertRegex(f.find("calculation").get("formula"),
+                         r"^\[Parameters\]\.\[Parameter \d+\] \+ \[Parameters\]\.\[Metric Choice\]$")
+
+
 class IntrospectTests(unittest.TestCase):
     def test_round_trip_from_generated_workbook(self):
         import tempfile
@@ -380,6 +467,26 @@ class IntrospectTests(unittest.TestCase):
         self.assertEqual(ds["snowflake"]["table"], "ORDERS")
         self.assertEqual(ds["columns"]["SALES_AMT"], "real")
         self.assertEqual(ds["columns"]["FISCAL_YEAR"], {"type": "integer", "role": "dimension"})
+
+    def test_keeps_string_list_parameter_calcs(self):
+        from tabgen.introspect import introspect
+        out = introspect(os.path.join(ROOT, "references", "parameters-list", "desktop-saved.twb"))
+        self.assertEqual(out["parameters"], {"Metric Choice": {"type": "string", "values": ["Sales", "Profit"],
+                                                               "value": "Sales"}})
+        calcs = next(iter(out["datasources"].values()))["calcs"]
+        self.assertEqual(calcs["Chosen Metric"]["formula"],
+                         "IF [Metric Choice] = 'Sales' THEN [Sales] ELSE [Profit] END")
+
+    def test_drops_calcs_on_unsupported_parameters(self):
+        import tempfile
+        from tabgen.introspect import introspect
+        with open(os.path.join(ROOT, "references", "parameters-list", "desktop-saved.twb"), encoding="utf-8") as fh:
+            xml = fh.read().replace("param-domain-type='list'", "param-domain-type='range'")
+        with tempfile.NamedTemporaryFile("w", suffix=".twb", delete=False) as fh:
+            fh.write(xml)
+        out = introspect(fh.name)
+        self.assertNotIn("parameters", out)
+        self.assertNotIn("Chosen Metric", next(iter(out["datasources"].values()))["calcs"])
 
 
 if __name__ == "__main__":
