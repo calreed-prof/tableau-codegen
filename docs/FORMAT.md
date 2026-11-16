@@ -34,6 +34,7 @@ maintainer can open them; their facts are summarised here and in PRs.
 | **REF-LAYOUT** | Desktop 2026.2.1: `examples/superstore-mini` built by us, then by hand: top row fixed to 456px, its first sheet to 609px wide, Show Title, a text box above the charts (2026-11-16). Cleaned; directory replaced | committed: `references/layout-basic/` |
 | **OPEN-CSV**, **OPEN-SF** | `examples/superstore-mini` and the private Snowflake example opened correctly in Desktop 2026.2.1 (2026-11-10) | observation |
 | **OPEN-M2** | PR #5 output opened correctly (2026-11-16): superstore-mini (a legend, no filter control); `generated-m2.twb` next to REF-FILTERS, a rebuild with one legend (filter + legend); the private Snowflake example (two legends, one on a calculated field) | observation |
+| **OPEN-M3** | PR #10 output opened correctly in Desktop 2026.2.1 (2026-11-16): a REF-LAYOUT rebuild; title + text with no side column (fixed bottom row, fixed right sheet); a text box with no title; the private filters dashboard with 8px padding | observation |
 | **OPEN-M1P2** | PR #7 output (`private/references/filters-categorical/generated.twb`) opened correctly (2026-11-16): side column shows Recent Run, Level (2 values) and the Metric legend, in that order; changing Level updates the chart | observation |
 | **OBS** | Other observations from the 2026-11-10 session | observation |
 
@@ -179,6 +180,7 @@ opened it (OPEN-SF).
 | Outer padding is 8px per side: x = round(8/W·100000), y = round(8/H·100000), w = 100000 − 2x, h = 100000 − 2y (1000 wide: 800; 1200x800: 667/1000; 1400x900: 571/889) | REF-CSV, REF-LAYOUT, REF-FILTERS |
 | Title and text box: Desktop wraps the content in a `vert` `layout-flow` zone holding `<zone type-v2='title'>` (42px, no text stored: it shows the dashboard name), then `<zone type-v2='text'>` (25px for one line) with `<formatted-text><run>…</run></formatted-text>`, then the previous content. Both get margin 4 | REF-LAYOUT |
 | Fixed row: its `horz` container gets `fixed-size=<height px> is-fixed='true'`. Fixed sheet: `fixed-size=<width px − 8> is-fixed='true'` (fixed-size excludes the two 4px margins). Flexible siblings share the rest | REF-LAYOUT |
+| Title/text with no side column (our grid's `vert` nested in the title's `vert`), and a text box without a title, open fine | OPEN-M3 |
 | Desktop puts a dashboard's lone sheet straight in the root zone; our vert/horz grid containers open fine | REF-CSV, OPEN-CSV |
 | Color legend height grows with members: 66px for 2 (REF-FILTERS), 86px for 3 (REF-LAYOUT), i.e. 26 + 20·n from two samples. We always emit 66px | REF-FILTERS, REF-LAYOUT |
 | Root `layout-basic` zone, sheet zones with `zone-style` margin 4 (sheets) / 8 (root) | REF-CSV |
@@ -198,8 +200,6 @@ opened it (OPEN-SF).
 
 | Unverified / not emitted (layout) | Notes |
 |---|---|
-| Title or text box on a dashboard without a side column (we nest our grid's `vert` inside the title's `vert`) | REF-LAYOUT has a side column; needs an open (M3 PR) |
-| A text box without a title (text first in the wrapper) | REF-LAYOUT has both; needs an open (M3 PR) |
 | Custom title text, multi-line or formatted text, text elsewhere than above the charts, floating zones, all-fixed rows/columns | No reference: the spec has no way to ask for them |
 | Desktop's own split of flexible space (unequal, content-based); we split equally | Accepted in the private references' `known-diffs.json` |
 
