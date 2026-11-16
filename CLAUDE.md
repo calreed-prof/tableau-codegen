@@ -5,49 +5,50 @@ Target: Tableau Desktop 2026.2.1, which writes `version='18.1'` + a feature-flag
 Read `README.md` (spec + layout), `ROADMAP.md` (scope) and `docs/FORMAT.md` (verified format facts)
 before changing the compiler.
 
-## Current status (update this section in every PR that changes it)
+## Current status (keep this short; history lives in `ROADMAP.md` → Done)
 
-- Done: M0 core (CSV + live Snowflake OAuth sources, calcs, marks/encodings, grid dashboards,
-  `introspect`) and the dev process (PR #1: reviewer agent, CI, hooks, leak + golden checks).
-- PR #2 (docs: this file, README spec reference, `docs/FORMAT.md` evidence log).
-- PR #3: live Snowflake metadata now matches REF-SF (integer 131 +
-  precision 38/scale 0, date 7, real precision 15).
-- PR #4 (M1 part 1): boolean worksheet filters (`true`) + dashboard filter controls,
-  from REF-FILTERS (`private/references/filters-legends/`, see `docs/FORMAT.md`).
-- PR #5 (M2 part 1): dashboard color legends for dimension color fields, auto-added or picked with
-  `legends`; REF-FILTERS + OPEN-M2.
-- PR #7 (M1 part 2): string dimension filters kept to 2+ values, + their dashboard controls (also
-  from a second data source); REF-FILTERS-CAT (`private/references/filters-categorical/`) + OPEN-M1P2.
-- PR #8 (chore): `refdiff.py check`/`lock`, `tests/test_references.py` (every reference, private
-  ones locally), `references/README.md`. References are hash-pinned in `LOCK.json`; the read-only bit is local only
-  (git doesn't keep it), so re-run `lock` after a fresh clone.
-- **Next: M3 Layout.** Also fixes the outer padding (Desktop: x=571/y=889 at 1400x900; we use
-  800/1000), so `check` can claim zone x/y too. M2 part 2 (size and
-  continuous color legends) needs a reference: in a saved workbook, color a sheet by a measure and
-  put a measure on size, show both legends on the dashboard, and save as
-  `private/references/legends-size/desktop-saved.twb`.
-- Single-value string filters need a reference (filter a string field to one value, save as
-  `private/references/filters-single/desktop-saved.twb`); low priority until a dashboard needs it.
-- References: always **Save As** into a new `private/references/<feature>/` folder. A plain Save
-  overwrote REF-FILTERS on 2026-11-16.
+- **Next: M3 Layout** (row heights / column widths, dashboard title, text boxes). It should also fix
+  the outer padding (Desktop: x=571/y=889 at 1400x900; we use 800/1000) so `refdiff.py check` can
+  claim zone x/y.
+- **Waiting on a Desktop reference** (the human builds these; see `references/README.md`):
+  - M2 part 2, size + continuous color legends: color a sheet by a measure, put a measure on size,
+    show both legends on a dashboard → `private/references/legends-size/desktop-saved.twb`.
+  - Single-value string filter (low priority): → `private/references/filters-single/desktop-saved.twb`.
 - The human uses Tableau Desktop 2026.2.1 on macOS, Python 3.9, Snowflake with browser SSO.
+
+**Evidence keys** (REF-SF, REF-FILTERS, OPEN-M2, ...) appear across these docs. `REF-x` = a workbook
+saved by Desktop, `OPEN-x` = the human opened our output in Desktop, `OBS` = a recorded observation.
+All are defined, with where the file lives, at the top of `docs/FORMAT.md`. Most are in `private/`
+(maintainer only).
 
 ## Workflow (mandatory)
 
-1. **Never commit to `main`.** Branch per change: `feat/<roadmap-id>-<slug>`, `fix/<slug>`, `chore/<slug>`.
+1. **Never commit to `main`.** Branch per change: `feat/<roadmap-id>-<slug>`, `fix/<slug>`, `chore/<slug>`
+   (`chore/` for tooling and docs-only changes).
 2. **One roadmap item per PR.** Name the item from `ROADMAP.md` in the PR. Unrelated refactors,
    "while I was here" changes, and features not on the roadmap go in a separate PR or nowhere.
-3. **Update the docs in the same PR**: the "Current status" section above, `docs/FORMAT.md` (new
-   facts + evidence keys, and anything a Desktop open has since verified), `ROADMAP.md`, and
-   `README.md` when the spec changes. Docs-only follow-ups are a sign this step was skipped.
-   Open a PR with the template filled in. Run `python3 -m unittest discover tests` and
-   `python3 scripts/check_leaks.py --require-denylist` first; both must pass, and CI must be green.
-4. **Independent review.** Run the `pr-reviewer` agent on the PR (fresh context, not a fork of the
+3. **Update the docs in the same PR** as the change it describes:
+   - "Current status" above, if the next step or open reference requests change;
+   - `ROADMAP.md` → Done, for a finished item (one line, with the PR number);
+   - `docs/FORMAT.md`: new facts with their evidence keys, and anything a Desktop open has since
+     verified;
+   - `README.md`, when the spec changes.
+
+   A docs-only PR is fine for docs work itself, but not as a follow-up to a change that skipped this step.
+4. **Check, then open the PR.**
+   - Run `python3 -m unittest discover tests` and `python3 scripts/check_leaks.py --require-denylist`.
+     Both must pass.
+   - Without `private/denylist.txt` (outside contributors), the leak check exits 2 ("NOT VERIFIED").
+     Say so in the PR; the maintainer's review runs the full check.
+   - Open the PR with the template filled in. CI must be green.
+5. **Independent review.** Run the `pr-reviewer` agent on the PR (fresh context, not a fork of the
    authoring session). If the session didn't start in this repo, the agent type isn't registered:
    spawn a fresh general-purpose agent told to follow `.claude/agents/pr-reviewer.md` for PR #n.
-   It posts `VERDICT: APPROVE` or `VERDICT: CHANGES REQUESTED`. Verify each blocking item yourself,
-   fix it, push, wait for green CI, and re-review with a **new** fresh agent until approved.
-5. **The human merges** (squash) after the approval *and* after confirming the generated workbook
+   - It posts `VERDICT: APPROVE` or `VERDICT: CHANGES REQUESTED` as a PR comment. Link that comment
+     in the template's Review section.
+   - Verify each blocking item yourself, fix it, push, wait for green CI, and re-review with a
+     **new** fresh agent until approved.
+6. **The human merges** (squash) after the approval *and* after confirming the generated workbook
    opens in Tableau Desktop when the PR changes generated XML. AI agents do not merge.
 
 ## Evidence rule (no guessing the file format)
@@ -57,7 +58,7 @@ Tableau's real format is only partly documented, and the published XSD doesn't m
   under `references/<feature>/` (or `private/references/` if it holds company data, then
   summarised in the PR), plus a test that checks the generated XML against it.
 - Do not invent element names, attributes or enum values. If no reference shows it, get one:
-  ask the human to build the smallest example in Desktop and *Save As* `.twb`.
+  ask the human to build the smallest example in Desktop, following `references/README.md`.
 - PR descriptions say what was verified and how; "should work" is not evidence.
 
 ## Scope guardrails
@@ -75,7 +76,7 @@ Tableau's real format is only partly documented, and the published XSD doesn't m
   committing.
 - `scripts/check_leaks.py` must pass. CI checks generic rules only (it has no company denylist);
   the pre-commit hook and the reviewer also check `private/denylist.txt` via `--require-denylist`.
-- This is the human's personal GitHub repo (owner `calreed-prof`). The `gh` CLI has more than one
+- Maintainer setup: this is the human's personal GitHub repo (owner `calreed-prof`). The `gh` CLI has more than one
   account signed in: before any push, check `gh api user --jq .login` prints `calreed-prof`
   (switch with `gh auth switch`).
 - The git hooks are local and opt-in (`git config core.hooksPath githooks`) and can be bypassed with

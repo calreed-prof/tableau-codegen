@@ -1,45 +1,40 @@
 # TWB format notes (what we know, and how we know it)
 
-This is the evidence log for the XML the compiler emits. Every fact here cites evidence you can check:
-a Desktop-saved reference file, or a generated workbook the human opened in Desktop. Anything marked
-**Unverified** is emitted today without evidence. So is anything the compiler emits that isn't
-listed here, which mostly means structure copied from the references below. Unverified XML needs a
-reference before a feature builds on it, and `tabgen` must not grow new unverified XML (see
-`CLAUDE.md` → Evidence rule).
+The evidence log for the XML the compiler emits: each fact cites a Desktop-saved reference or a
+recorded Desktop open. Rules for adding facts are in `CLAUDE.md` → Evidence rule.
 
-`tests/test_references.py` rebuilds every reference's `spec.json` and compares the claimed XML
-(`scripts/refdiff.py` → `claims()`); accepted differences are listed with reasons in each
-reference's `known-diffs.json`.
+- **Unverified** rows are emitted today without evidence; find them with `grep -n Unverified`.
+  Anything emitted but not listed here is also unverified, mostly structure copied from the references.
+- **How it's checked:** `tests/test_references.py` rebuilds every reference's `spec.json` and compares
+  the claimed XML (`scripts/refdiff.py` → `claims()`), with accepted differences and reasons in each
+  reference's `known-diffs.json`. That is the authoritative check. Unit tests in
+  `tests/test_compiler.py` also spell out a few expected values, so CI covers private references too.
 
-Evidence keys:
-- **REF-CSV**: `references/csv-basic/desktop-saved.twb` (Desktop 2026.2.1, textscan CSV, bar chart, dashboard).
-  The committed copy was cleaned with `refdiff.py clean`: no fingerprint attributes, no thumbnails.
-- **REF-SF**: Desktop 2026.2.1 workbook with two live Snowflake tables (with extracts), parameters,
-  filters and LOD calcs. Company data, so it lives at `private/references/snowflake-basic/Book1.twb`
-  and is not committed. Saved before the `desktop-saved.twb` naming convention existed.
-- **REF-FILTERS**: Desktop 2026.2.1 save of our generated private Snowflake example after adding,
-  by hand, a boolean LOD calc (`{ FIXED : MAX([RUN_TIMESTAMP]) } = [RUN_TIMESTAMP]`), a worksheet
-  filter keeping it to True, its dashboard filter control and a color legend (2026-11-10). Company
-  data, so it lives at `private/references/filters-legends/desktop-saved.twb` (next to the `spec.twb`
-  it started from, and a `spec.json` that rebuilds it). Diffing against our own output isolates what
-  filters and legends add. **Re-saved by accident on 2026-11-16** with REF-FILTERS-CAT's Level filter
-  added (and the boolean control re-laid out to 70px), so the file no longer matches the original.
-  The facts below that cite REF-FILTERS were recorded from the original save.
-- **REF-FILTERS-CAT**: REF-FILTERS's workbook after adding, by hand, a filter keeping the string
-  dimension `LEVEL` on `Season Forecast by Level` to two values, and its dashboard control
-  (2026-11-16). The dashboard now has controls from two data sources. Company data:
-  `private/references/filters-categorical/desktop-saved.twb`, with a `spec.json` that rebuilds it.
-- **OPEN-CSV** / **OPEN-SF**: `examples/superstore-mini` and the private Snowflake example were
-  generated and opened in Desktop 2026.2.1 by the human, rendering correctly (2026-11-10). Not
-  machine-checkable: it's a recorded human observation.
-- **OPEN-M2**: generated with PR #5 and opened in Desktop 2026.2.1 by the human, rendering correctly
-  (2026-11-16): `examples/superstore-mini` (one legend, no filter control), `generated-m2.twb`
-  next to REF-FILTERS (its `spec.json` built with a one-sheet `legends` override; filter + legend), and the private
-  Snowflake example (two legends, one on a calculated string field, no filter control).
-- **OPEN-M1P2**: `private/references/filters-categorical/generated.twb` (PR #7) opened in Desktop
-  2026.2.1 by the human (2026-11-16): renders correctly; side column shows Recent Run, Level (2 values
-  ticked) and the Metric legend in that order; ticking another Level value updates the chart.
-- **OBS**: other recorded observations from the 2026-11-10 session (no file to grep).
+**Terms:** *federated* = Tableau's wrapper data source around one or more connections;
+*textscan* = the CSV connector; *LOD* = a `{ FIXED ... }` level-of-detail calc; *zone* = a box in
+a dashboard layout (`layout-flow` = a row/column container, `layout-basic` = the root);
+*remote-type* = the database type code in a column's metadata record; `usr:` = the shelf prefix
+for an aggregate calc. Tableau's published schemas:
+[tableau-document-schemas](https://github.com/tableau/tableau-document-schemas) (advisory only,
+see below).
+
+## Evidence keys
+
+`REF-x` = a workbook saved by Tableau Desktop; `OPEN-x` = the human opened our generated output in
+Desktop and it rendered correctly (a recorded observation, not machine-checkable); `OBS` = other
+recorded observations. **Private** files are in git-ignored `private/` (company data), so only the
+maintainer can open them; their facts are summarised here and in PRs.
+
+| Key | What | Where |
+|---|---|---|
+| **REF-CSV** | Desktop 2026.2.1: textscan CSV, bar chart, dashboard. Cleaned with `refdiff.py clean` (no fingerprints or thumbnails) | committed: `references/csv-basic/` |
+| **REF-SF** | Desktop 2026.2.1: two live Snowflake tables (with extracts), parameters, filters, LOD calcs. Predates the `desktop-saved.twb` naming | private: `private/references/snowflake-basic/Book1.twb` |
+| **REF-FILTERS** | Our generated Snowflake example plus, added by hand: a boolean LOD calc (`{ FIXED : MAX([RUN_TIMESTAMP]) } = [RUN_TIMESTAMP]`), a filter keeping it to True, its dashboard control, a color legend (2026-11-10). **The original file is lost:** it was saved over on 2026-11-16 (a Level filter was added, and the boolean control was re-laid out to 70px). Facts citing REF-FILTERS were recorded from the original | private: `private/references/filters-legends/` (current file + a `spec.json` describing it) |
+| **REF-FILTERS-CAT** | REF-FILTERS plus a filter keeping the string dimension `LEVEL` to two values and its dashboard control, so the dashboard has controls from two data sources (2026-11-16) | private: `private/references/filters-categorical/` |
+| **OPEN-CSV**, **OPEN-SF** | `examples/superstore-mini` and the private Snowflake example opened correctly (2026-11-10) | observation |
+| **OPEN-M2** | PR #5 output opened correctly (2026-11-16): superstore-mini (a legend, no filter control); a REF-FILTERS rebuild with one legend (filter + legend); the private Snowflake example (two legends, one on a calculated field) | observation |
+| **OPEN-M1P2** | PR #7 output (`private/references/filters-categorical/generated.twb`) opened correctly (2026-11-16): side column shows Recent Run, Level (2 values) and the Metric legend, in that order; changing Level updates the chart | observation |
+| **OBS** | Other observations from the 2026-11-10 session | observation |
 
 ## Workbook envelope
 
@@ -116,8 +111,7 @@ move to an outer `union`; string members are written in double quotes (`&quot;` 
 ```
 
 The filtered field also gets a `<column>` + `<column-instance>` in the sheet's dependencies.
-The compiler's output for both filters matches the references exactly (checked by rebuilding each
-reference's `spec.json`; the expected XML is written out in `tests/test_compiler.py`).
+The compiler's output for both filters matches the references exactly (`tests/test_references.py`).
 
 | Unverified / not emitted | Notes |
 |---|---|
@@ -186,7 +180,7 @@ opened it (OPEN-SF).
 | `param="horz"` | REF-SF |
 | Our grid nests horz rows inside a vert container | OPEN-CSV, OPEN-SF |
 | Filter controls: Desktop wraps the grid in a `horz` `layout-flow` zone, next to a fixed side column `<zone fixed-size='160' is-fixed='true' param='vert' type-v2='layout-flow' w=160px>` | REF-FILTERS |
-| Filter control zone: `<zone name=<sheet> param=<filter field ref> type-v2='filter' values='database'>`, margin 4, h = 89px for a boolean (70px in the 2026-11-16 re-save; we keep 89) | REF-FILTERS |
+| Filter control zone: `<zone name=<sheet> param=<filter field ref> type-v2='filter' values='database'>`, margin 4, h = 89px for a boolean. Desktop's 2026-11-16 re-saves show 70px; we keep 89, which opens fine (accepted in `known-diffs.json`) | REF-FILTERS, OPEN-M1P2 |
 | Multi-value string control: same zone, h = 203px on a 900px dashboard, for a field keeping 2 values (one sample; Desktop may size others differently) | REF-FILTERS-CAT |
 | Controls from two data sources: one `<datasources>` with both, then one `<datasource-dependencies>` per source, in the reference's order, which is both the order the controls were added and the sorted source-name order (we use spec order, which opens fine per OPEN-M1P2; unverified which rule Desktop's own saves follow) | REF-FILTERS-CAT |
 | Desktop appends a new control at the bottom of the side column, after any legend; we stack all controls first, then legends, and Desktop accepts that order | REF-FILTERS-CAT, OPEN-M1P2 |

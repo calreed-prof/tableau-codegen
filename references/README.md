@@ -1,6 +1,7 @@
 # Desktop references
 
-Each folder is one feature's evidence: a workbook **saved by Tableau Desktop**, plus a `spec.json`
+Only `csv-basic/` is committed; company-data references live in git-ignored `private/references/`
+(maintainer only). Each folder is one feature's evidence: a workbook **saved by Tableau Desktop**, plus a `spec.json`
 that rebuilds it. Company-data references follow the same layout under `private/references/`
 (git-ignored). See `docs/FORMAT.md` for what each reference proves.
 
@@ -16,7 +17,7 @@ LOCK.json                     SHA-256 of every desktop-saved.twb in this folder
 1. Start from the smallest workbook that shows the feature. Often that's a generated one: `python3 -m
    tabgen build <spec> --open`.
 2. Make the change by hand in Desktop.
-3. **File → Save As** into a **new** folder `references/<feature>/desktop-saved.twb` (or
+3. **File → Save As** into a **new** folder (a plain Save overwrote REF-FILTERS on 2026-11-16) `references/<feature>/desktop-saved.twb` (or
    `private/references/<feature>/` for company data). Never plain *Save* over an existing reference.
    Locked references are read-only, so Desktop will refuse instead of overwriting.
 4. Tell the agent the folder name and what you changed.
