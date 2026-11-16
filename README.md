@@ -30,8 +30,9 @@ private/                git-ignored: real company workbooks, specs, denylist
 
 ## Spec reference
 
-Smallest working spec (one CSV, one chart, one dashboard). For a fuller runnable example, start from
-`examples/superstore-mini/spec.json`.
+Smallest working spec (one CSV, one chart, one dashboard). It expects a `sales.csv` with `Region`
+and `Sales` columns next to the spec, e.g. save it as `examples/superstore-mini/min.json`. For a
+fuller runnable example, start from `examples/superstore-mini/spec.json`.
 
 ```json
 {
@@ -144,7 +145,7 @@ Common mistakes stop the build with a clear message instead of producing a broke
 - missing Snowflake settings or `columns`
 
 Validation is not complete yet: some malformed specs crash with a Python traceback, e.g. a missing
-`datasources`, `sheets` or `layout`, an empty `layout`, a column without `type`, or a list given as
+or empty `datasources`, a missing `sheets` or `layout`, an empty `layout`, a column without `type`, or a list given as
 an encoding.
 
 ## Known limitations (see ROADMAP.md)

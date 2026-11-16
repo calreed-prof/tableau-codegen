@@ -18,6 +18,7 @@ Each item ships as its own PR, backed by a Desktop-saved reference. Done = merge
 - **M2 Legends (part 1, PR #5):** dashboard color legends for dimension color fields.
 - **M1 Filters (part 2, PR #7):** string dimension filters kept to 2+ values, controls from several
   data sources.
+- **PR #6:** docs follow-up to #5 (recorded the Desktop opens, added the docs-in-the-same-PR rule).
 - **Dev tooling (PR #8):** reference checks for every reference (private ones locally) and
   hash-pinned references. The read-only bit is local only: re-run `refdiff.py lock` after a clone.
 

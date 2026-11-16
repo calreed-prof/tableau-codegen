@@ -38,8 +38,10 @@ All are defined, with where the file lives, at the top of `docs/FORMAT.md`. Most
 4. **Check, then open the PR.**
    - Run `python3 -m unittest discover tests` and `python3 scripts/check_leaks.py --require-denylist`.
      Both must pass.
-   - Without `private/denylist.txt` (outside contributors), the leak check exits 2 ("NOT VERIFIED").
-     Say so in the PR; the maintainer's review runs the full check.
+   - Outside contributors have no `private/denylist.txt`, so `--require-denylist` (and the pre-commit
+     hook, which runs it) exits 2 ("NOT VERIFIED"). Don't enable the hooks; run the tests and
+     `python3 scripts/check_leaks.py` (generic rules) by hand, and say so in the PR. The maintainer's
+     review runs the full check.
    - Open the PR with the template filled in. CI must be green.
 5. **Independent review.** Run the `pr-reviewer` agent on the PR (fresh context, not a fork of the
    authoring session). If the session didn't start in this repo, the agent type isn't registered:
