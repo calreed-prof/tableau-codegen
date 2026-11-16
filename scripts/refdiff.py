@@ -140,12 +140,12 @@ def claims(root):
             for z in mine:  # one claim per zone, so a known diff can't hide the others
                 key = f"dashboard[{name}]/{kind} zone[{z.get('name')} {_norm(z.get('param', ''))}]"
                 out[key] = {k: _norm(z.get(k)) for k in ZONE_KEYS if z.get(k) is not None}
-        root = db.find("zones/zone")
-        out[f"dashboard[{name}]/zone tree"] = _tree(root)
-        for path, z in _paths(root, "1"):
+        top = db.find("zones/zone")
+        out[f"dashboard[{name}]/zone tree"] = _tree(top)
+        for path, z in _paths(top, "1"):
             out[f"dashboard[{name}]/zone {path} geometry"] = {
                 k: z.get(k) for k in GEOMETRY_KEYS if z.get(k) is not None}
-        side = [z for z in zones if z.get("is-fixed") == "true"]
+        side = [z for z in zones if z.get("is-fixed") == "true" and z.get("param") == "vert"]
         out[f"dashboard[{name}]/side column"] = [
             str({k: z.get(k) for k in ("fixed-size", "is-fixed", "param", "type-v2", "w")}) for z in side]
     return out

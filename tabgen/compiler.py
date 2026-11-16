@@ -518,11 +518,16 @@ def dashboard_layout(name, spec):
         return value
 
     heights = sizes("row_heights", spec.get("row_heights"), len(grid), "one per layout row")
+    if not all(isinstance(s, str) for row in grid for s in row):
+        raise SpecError(f"Dashboard {name!r}: 'layout' rows must list sheet names")
     cw = spec.get("col_widths")
     if cw is not None and (not isinstance(cw, list) or len(cw) != len(grid)):
         raise SpecError(f"Dashboard {name!r}: 'col_widths' needs one list per layout row")
     widths = [sizes("col_widths", cw[r] if cw else None, len(row), f"one per sheet in row {r + 1}")
               for r, row in enumerate(grid)]
+    if any(v is not None and v <= 2 * SHEET_MARGIN_PX for row in widths for v in row):
+        raise SpecError(f"Dashboard {name!r}: 'col_widths' entries must be more than "
+                        f"{2 * SHEET_MARGIN_PX}px (a sheet's two {SHEET_MARGIN_PX}px margins)")
     title, text = spec.get("title", False), spec.get("text")
     if not isinstance(title, bool):
         raise SpecError(f"Dashboard {name!r}: 'title' must be true or false (it shows the dashboard name)")
@@ -736,6 +741,9 @@ def build(spec, base_dir):
         dbs = sub(wb, "dashboards")
         ids = iter(range(1, 100_000))
         for name, d in dashboards.items():
+            if not isinstance(d, dict):
+                raise SpecError(f"Dashboard {name!r} must be an object with a 'layout'")
+            dashboard_layout(name, d)  # shape first, so the sheet check below can trust it
             for row in d["layout"]:
                 for s in row:
                     if s not in spec["sheets"]:

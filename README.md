@@ -149,7 +149,7 @@ Every option:
 
 Common mistakes stop the build with a clear message instead of producing a broken workbook:
 - an unknown field, sheet, data source, mark, aggregation or column type
-- an empty or malformed `layout`, or sizes that don't fit
+- a missing, empty or malformed `layout`, or sizes that don't fit
 - missing Snowflake settings or `columns`
 
 Validation is not complete yet: some malformed specs crash with a Python traceback, e.g. a missing

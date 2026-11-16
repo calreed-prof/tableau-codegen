@@ -199,6 +199,7 @@ opened it (OPEN-SF).
 | Unverified / not emitted (layout) | Notes |
 |---|---|
 | Title or text box on a dashboard without a side column (we nest our grid's `vert` inside the title's `vert`) | REF-LAYOUT has a side column; needs an open (M3 PR) |
+| A text box without a title (text first in the wrapper) | REF-LAYOUT has both; needs an open (M3 PR) |
 | Custom title text, multi-line or formatted text, text elsewhere than above the charts, floating zones, all-fixed rows/columns | No reference: the spec has no way to ask for them |
 | Desktop's own split of flexible space (unequal, content-based); we split equally | Accepted in the private references' `known-diffs.json` |
 

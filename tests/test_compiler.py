@@ -92,6 +92,12 @@ class CompilerTests(unittest.TestCase):
         self.assertEqual((s1.get("fixed-size"), s1.get("w"), s2.get("x")), ("601", "50750", str(667 + 50750)))
         self.assertEqual(int(s1.get("w")) + int(s2.get("w")), int(top.get("w")))
 
+    def test_missing_layout_is_spec_error(self):
+        with self.assertRaises(SystemExit) as cm:
+            build(spec(dashboards={"D": {"size": [1200, 800]}}), EXAMPLE)
+        self.assertIn("'layout' must be", str(cm.exception))
+        self.assertNotIsInstance(cm.exception, KeyError)
+
     def test_no_title_no_wrapper(self):
         self.assertEqual(self.layout_db().find("zones/zone/zone").get("param"), "vert")
         self.assertFalse([z for z in self.layout_db().iter("zone") if z.get("type-v2") in ("title", "text")])
@@ -103,7 +109,10 @@ class CompilerTests(unittest.TestCase):
                           ({"col_widths": [[100, None], [100]]}, "at least one null"),
                           ({"col_widths": [[5000, None], [None]]}, "no room"),
                           ({"title": "Hi"}, "true or false"), ({"text": ""}, "one non-empty line"),
-                          ({"text": "a\nb"}, "one non-empty line"), ({"layout": []}, "non-empty")):
+                          ({"text": "a\nb"}, "one non-empty line"), ({"layout": []}, "non-empty"),
+                          ({"layout": None}, "non-empty"), ({"layout": [["S1"], "S2x"]}, "non-empty"),
+                          ({"layout": [["S1", 3]]}, "sheet names"),
+                          ({"col_widths": [[8, None], [None]]}, "more than 8px")):
             with self.assertRaises(SystemExit) as cm:
                 self.layout_db(**dash)
             self.assertIn(msg, str(cm.exception))
