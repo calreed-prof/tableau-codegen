@@ -18,7 +18,13 @@ Evidence keys:
   filter keeping it to True, its dashboard filter control and a color legend (2026-11-10). Company
   data, so it lives at `private/references/filters-legends/desktop-saved.twb` (next to the `spec.twb`
   it started from, and a `spec.json` that rebuilds it). Diffing against our own output isolates what
-  filters and legends add.
+  filters and legends add. **Re-saved by accident on 2026-11-16** with REF-FILTERS-CAT's Level filter
+  added (and the boolean control re-laid out to 70px), so the file no longer matches the original.
+  The facts below that cite REF-FILTERS were recorded from the original save.
+- **REF-FILTERS-CAT**: REF-FILTERS's workbook after adding, by hand, a filter keeping the string
+  dimension `LEVEL` on `Season Forecast by Level` to two values, and its dashboard control
+  (2026-11-16). The dashboard now has controls from two data sources. Company data:
+  `private/references/filters-categorical/desktop-saved.twb`, with a `spec.json` that rebuilds it.
 - **OPEN-CSV** / **OPEN-SF**: `examples/superstore-mini` and the private Snowflake example were
   generated and opened in Desktop 2026.2.1 by the human, rendering correctly (2026-11-10). Not
   machine-checkable: it's a recorded human observation.
@@ -90,12 +96,25 @@ Worksheet filter keeping a boolean field to True (REF-FILTERS), inside the sheet
 </slices>
 ```
 
+Worksheet filter keeping a string dimension to several values (REF-FILTERS-CAT). The ui attributes
+move to an outer `union`; string members are written in double quotes (`&quot;` in the attribute):
+
+```xml
+<filter class='categorical' column='[federated.X].[none:LEVEL:nk]'>
+  <groupfilter function='union' user:ui-domain='database' user:ui-enumeration='inclusive' user:ui-marker='enumerate'>
+    <groupfilter function='member' level='[none:LEVEL:nk]' member='&quot;Company&quot;' />
+    <groupfilter function='member' level='[none:LEVEL:nk]' member='&quot;Division&quot;' />
+  </groupfilter>
+</filter>
+```
+
 The filtered field also gets a `<column>` + `<column-instance>` in the sheet's dependencies.
+The compiler's output for both filters matches the references exactly (checked by rebuilding each
+reference's `spec.json`; the expected XML is written out in `tests/test_compiler.py`).
 
 | Unverified / not emitted | Notes |
 |---|---|
-| `member='false'`, string members, multi-member lists (`function='union'`?), ranges, top-N, context filters | No reference yet: the spec rejects them. REF-SF has examples of some, but they're on parameter-driven fields |
-| Filter controls from more than one data source on one dashboard (we write one `<datasource-dependencies>` per source) | REF-FILTERS has one source only |
+| A single string value (probably one `member` groupfilter like the boolean case), `member='false'`, exclude lists, numeric/date members, values containing `"`, ranges, top-N, context filters | No reference yet: the spec rejects them. REF-SF has examples of some, but they're on parameter-driven fields |
 | Calc inputs that are themselves calcs: we list direct references only, not their inputs | REF-FILTERS's calcs only name database columns |
 | Desktop also wrote `<viewpoint><highlight><color-one-way><field>` (the filter field) in the sheet's window | Optional per OPEN-CSV/OPEN-SF; omitted |
 
@@ -160,7 +179,10 @@ opened it (OPEN-SF).
 | `param="horz"` | REF-SF |
 | Our grid nests horz rows inside a vert container | OPEN-CSV, OPEN-SF |
 | Filter controls: Desktop wraps the grid in a `horz` `layout-flow` zone, next to a fixed side column `<zone fixed-size='160' is-fixed='true' param='vert' type-v2='layout-flow' w=160px>` | REF-FILTERS |
-| Filter control zone: `<zone name=<sheet> param=<filter field ref> type-v2='filter' values='database'>`, margin 4, h = 89px for a boolean | REF-FILTERS |
+| Filter control zone: `<zone name=<sheet> param=<filter field ref> type-v2='filter' values='database'>`, margin 4, h = 89px for a boolean (70px in the 2026-11-16 re-save; we keep 89) | REF-FILTERS |
+| Multi-value string control: same zone, h = 203px (on a 900px dashboard) | REF-FILTERS-CAT |
+| Controls from two data sources: one `<datasources>` with both, then one `<datasource-dependencies>` per source, in the order the controls were added (we use spec order) | REF-FILTERS-CAT |
+| Desktop appends a new control at the bottom of the side column, after any legend; we stack all controls first, then legends | REF-FILTERS-CAT (layout choice only) |
 | A dashboard with a filter control gets `<datasources>` and a `<datasource-dependencies>` (filter field's column + column-instance only, not calc inputs) between `<size>` and `<zones>` | REF-FILTERS |
 | Color legend: `<zone name=<sheet> pane-specification-id='0' param=<sheet's color field ref> type-v2='color'>`, margin 4, h = 66px, in the same side column below the filter controls | REF-FILTERS |
 | A side column holding legends only (no filter control); a legend on a calculated dimension | OPEN-M2 |

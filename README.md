@@ -83,9 +83,12 @@ private/                git-ignored: real company workbooks, specs, denylist
   - `rows`, `cols`: a field or a list of fields
   - `mark`: default `automatic`
   - encodings `color`, `size`, `label`, `detail`, `tooltip`: one field each
-  - `filters`: `field -> value`. So far only a boolean field (usually a boolean calc) kept to
-    `true` is supported, e.g. `{"Recent": true}`; anything else is a `SpecError` until there's a
-    Desktop reference for it.
+  - `filters`: `field -> value`. Supported:
+    - a boolean field (usually a boolean calc) kept to `true`: `{"Recent": true}`
+    - a string dimension kept to two or more values: `{"Region": ["East", "West"]}`
+
+    Anything else (one value, exclude, numbers, dates, ranges, top-N) is a `SpecError` until
+    there's a Desktop reference for it.
 - Fields can be referenced by raw name or caption (`SALES_AMT` or `Sales Amt`), optionally wrapped
   in:
   - aggregations: `sum avg min max count countd`
@@ -129,7 +132,7 @@ Validation is not complete yet: some malformed specs crash with a Python traceba
 
 ## Known limitations (see ROADMAP.md)
 
-- Filters: boolean `true` only (no categorical member lists, ranges or top-N yet).
+- Filters: boolean `true` and lists of 2+ string values only (no single values, exclude, ranges or top-N yet).
 - Legends: color legends for dimensions only (no size or continuous color legends).
 - No parameters, titles/text boxes, sorting or number formatting yet.
 - Layout is equal-split only; long axis labels can be clipped.

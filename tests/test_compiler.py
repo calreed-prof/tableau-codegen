@@ -192,8 +192,12 @@ class SnowflakeTests(unittest.TestCase):
         self.assertFalse([z for z in db.iter("zone") if z.get("type-v2") == "filter"])
 
     def test_filter_errors(self):
-        for sheet_filters, msg in (({"Region": True}, "boolean"), ({"Recent": False}, "true"),
-                                   ({"Nope": True}, "Unknown field"), (["Recent"], "map")):
+        for sheet_filters, msg in (({"Region": True}, "two or more"), ({"Recent": False}, "true"),
+                                   ({"Nope": True}, "Unknown field"), (["Recent"], "map"),
+                                   ({"Region": ["East"]}, "two or more"), ({"Region": "East"}, "two or more"),
+                                   ({"Region": ["E", "E"]}, "different"), ({"Region": ["a\"b", "c"]}, "contain"),
+                                   ({"Sales Amt": [1, 2]}, "string dimension"),
+                                   ({"Order Ts": ["a", "b"]}, "string dimension")):
             with self.assertRaises(SystemExit) as cm:
                 self.filtered(dash_filters=[], sheet_filters=sheet_filters)
             self.assertIn(msg, str(cm.exception))
@@ -203,6 +207,45 @@ class SnowflakeTests(unittest.TestCase):
             with self.assertRaises(SystemExit) as cm:
                 self.filtered(dash_filters=dash)
             self.assertIn(msg, str(cm.exception))
+
+    # ---- M1 part 2: string member filters, from REF-FILTERS-CAT (Desktop 2026.2.1, private)
+    def test_string_member_filter_on_worksheet(self):
+        wb = self.filtered(dash_filters=[], sheet_filters={"Region": ["Company", "Division"]})
+        view = wb.find(".//worksheet/table/view")
+        f = view.find("filter")
+        self.assertTrue(f.get("column").endswith("[none:REGION:nk]"))
+        U = "{http://www.tableausoftware.com/xml/user}"
+        (union,) = list(f)
+        self.assertEqual(dict(union.attrib), {"function": "union", U + "ui-domain": "database",
+                                              U + "ui-enumeration": "inclusive", U + "ui-marker": "enumerate"})
+        self.assertEqual([dict(g.attrib) for g in union],
+                         [{"function": "member", "level": "[none:REGION:nk]", "member": '"Company"'},
+                          {"function": "member", "level": "[none:REGION:nk]", "member": '"Division"'}])
+        self.assertEqual([c.text for c in view.find("slices")], [f.get("column")])
+        xml = build({"datasources": {"sf": SNOWFLAKE},
+                     "sheets": {"S": {"cols": "Region", "filters": {"Region": ["Company", "Division"]}}}},
+                    EXAMPLE)
+        self.assertIn('member="&quot;Company&quot;"', xml)  # Desktop writes member='&quot;Company&quot;'
+
+    def test_dashboard_controls_from_two_sources(self):
+        sf2 = dict(SNOWFLAKE, snowflake=dict(SNOWFLAKE["snowflake"], table="OTHER"),
+                   calcs={"Recent": {"formula": "{ FIXED : MAX([ORDER_TS]) } = [ORDER_TS]", "type": "boolean"}})
+        s = {"datasources": {"a": sf2, "b": SNOWFLAKE},
+             "sheets": {"W": {"datasource": "a", "cols": "Region", "filters": {"Recent": True}},
+                        "L": {"datasource": "b", "cols": "Region",
+                              "filters": {"Region": ["Company", "Division"]}}},
+             "dashboards": {"D": {"size": [1400, 900], "layout": [["W", "L"]], "legends": [],
+                                  "filters": [{"sheet": "W", "field": "Recent"},
+                                              {"sheet": "L", "field": "Region"}]}}}
+        db = ET.fromstring(build(s, EXAMPLE)).find(".//dashboard")
+        # One <datasources> entry and one <datasource-dependencies> per source, in control order.
+        names = [d.get("name") for d in db.find("datasources")]
+        self.assertEqual([d.get("datasource") for d in db.findall("datasource-dependencies")], names)
+        self.assertEqual([d.find("column").get("caption") for d in db.findall("datasource-dependencies")],
+                         ["Recent", "Region"])
+        ctls = [z for z in db.iter("zone") if z.get("type-v2") == "filter"]
+        self.assertEqual([(z.get("name"), z.get("h")) for z in ctls], [("W", "9889"), ("L", "22556")])
+        self.assertEqual(int(ctls[1].get("y")), int(ctls[0].get("y")) + int(ctls[0].get("h")))
 
     # ---- M2 legends: expected zone from REF-FILTERS (Desktop 2026.2.1, private; values written out here)
     def legends_wb(self, legends=None, sheets=None):

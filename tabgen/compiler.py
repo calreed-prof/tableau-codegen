@@ -376,8 +376,9 @@ def parse_field(s):
 
 # ---------------------------------------------------------------- worksheets
 def sheet_filters(sheet, spec, ds):
-    """Validate a sheet's "filters" map; return [(field, column-instance name)].
-    Only boolean fields kept to True are backed by a Desktop reference so far (REF-FILTERS)."""
+    """Validate a sheet's "filters" map; return [(field, column-instance name, members)].
+    Backed by Desktop references: a boolean field kept to true (REF-FILTERS) and a string field kept
+    to a list of two or more values (REF-FILTERS-CAT). members are the XML member values."""
     filters = spec.get("filters", {})
     if not isinstance(filters, dict):
         raise SpecError(f"Sheet {sheet!r}: 'filters' must be a map of field -> value, "
@@ -385,10 +386,25 @@ def sheet_filters(sheet, spec, ds):
     out = []
     for field, value in filters.items():
         c = ds.col(field)
-        if c["datatype"] != "boolean" or value is not True:
-            raise SpecError(f"Sheet {sheet!r}: filter on {field!r} must be a boolean field kept to true "
-                            f"(other filter kinds aren't supported yet)")
-        out.append((field, ds.ref(field, "none")[1]["name"]))
+        if c["datatype"] == "boolean":
+            if value is not True:
+                raise SpecError(f"Sheet {sheet!r}: filter on boolean {field!r} must be true "
+                                f"(keeping false isn't supported yet)")
+            members = ["true"]
+        elif c["datatype"] == "string" and c["role"] == "dimension":
+            if (not isinstance(value, list) or len(value) < 2
+                    or not all(isinstance(v, str) for v in value) or len(set(value)) != len(value)):
+                raise SpecError(f"Sheet {sheet!r}: filter on {field!r} must be a list of two or more "
+                                f"different values to keep, e.g. [\"East\", \"West\"] "
+                                f"(single values aren't supported yet)")
+            if any('"' in v for v in value):
+                raise SpecError(f"Sheet {sheet!r}: filter values on {field!r} can't contain '\"' yet")
+            members = [f'"{v}"' for v in value]
+        else:
+            raise SpecError(f"Sheet {sheet!r}: filter on {field!r} must be a boolean field (true) or a "
+                            f"string dimension (a list of values); {c['datatype']} filters aren't "
+                            f"supported yet")
+        out.append((field, ds.ref(field, "none")[1]["name"], members))
     return out
 
 
@@ -415,7 +431,7 @@ def worksheet_xml(parent, name, spec, ds):
     rows = shelf(spec.get("rows", []))
     cols = shelf(spec.get("cols", []))
     enc = {k: use(spec[k]) for k in ("color", "size", "label", "detail", "tooltip") if k in spec}
-    filters = [(use(f), inst_name) for f, inst_name in sheet_filters(name, spec, ds)]
+    filters = [(use(f), level, members) for f, level, members in sheet_filters(name, spec, ds)]
 
     # Columns: every field used, plus the columns a used calc names (no column-instance for those).
     dep_cols = {}
@@ -427,14 +443,20 @@ def worksheet_xml(parent, name, spec, ds):
         ds.column_xml(deps, dep_cols[cname])
     for _, inst in sorted(used.values(), key=lambda x: x[1]["name"]):
         sub(deps, "column-instance", **inst)
-    for ref, level in filters:
+    ui = {"user:ui-domain": "database", "user:ui-enumeration": "inclusive", "user:ui-marker": "enumerate"}
+    for ref, level, members in filters:
         f = sub(view, "filter", **{"class": "categorical", "column": ref})
-        sub(f, "groupfilter", **{"function": "member", "level": level, "member": "true",
-                                 "user:ui-domain": "database", "user:ui-enumeration": "inclusive",
-                                 "user:ui-marker": "enumerate"})
+        if len(members) == 1:
+            # One member: a single groupfilter carrying the ui attributes (REF-FILTERS).
+            sub(f, "groupfilter", **{"function": "member", "level": level, "member": members[0]}, **ui)
+        else:
+            # Several members: a union of member groupfilters; ui attributes on the union (REF-FILTERS-CAT).
+            union = sub(f, "groupfilter", **{"function": "union"}, **ui)
+            for m in members:
+                sub(union, "groupfilter", **{"function": "member", "level": level, "member": m})
     if filters:
         slices = sub(view, "slices")
-        for ref, _ in filters:
+        for ref, _, _ in filters:
             sub(slices, "column", ref)
     sub(view, "aggregation", value="true")
 
@@ -457,7 +479,8 @@ def worksheet_xml(parent, name, spec, ds):
 
 # ---------------------------------------------------------------- dashboards
 SIDE_PX = 160         # Desktop's fixed-width column for filter controls/legends (REF-FILTERS)
-FILTER_CARD_PX = 89   # height Desktop gave a boolean filter control (REF-FILTERS)
+FILTER_CARD_PX = {"boolean": 89,   # boolean filter control (REF-FILTERS)
+                  "string": 203}   # multi-value list control (REF-FILTERS-CAT)
 LEGEND_PX = 66        # height Desktop gave a categorical color legend (REF-FILTERS)
 
 
@@ -565,8 +588,8 @@ def dashboard_xml(parent, name, spec, ids, controls=(), legends=()):
         col = sub(outer, "zone", fixed_size=SIDE_PX, h=IH, id=next(ids), is_fixed="true", param="vert",
                   type_v2="layout-flow", w=side_w, x=sx, y=Y0)
         y = Y0
-        fh = round(FILTER_CARD_PX * 100000 / H)
         for sheet, ds, field in controls:
+            fh = round(FILTER_CARD_PX[ds.col(field)["datatype"]] * 100000 / H)
             z = sub(col, "zone", h=fh, id=next(ids), name=sheet, param=ds.ref(field, "none")[0],
                     type_v2="filter", values="database", w=side_w, x=sx, y=y)
             zone_style(z, "4")
