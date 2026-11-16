@@ -204,6 +204,66 @@ class SnowflakeTests(unittest.TestCase):
                 self.filtered(dash_filters=dash)
             self.assertIn(msg, str(cm.exception))
 
+    # ---- M2 legends: expected zone from REF-FILTERS (Desktop 2026.2.1, private; values written out here)
+    def legends_wb(self, legends=None, sheets=None):
+        sheets = sheets or {"A": {"cols": "Fiscal Year", "rows": "sum(Sales Amt)", "color": "Region"},
+                            "B": {"cols": "Fiscal Year", "rows": "sum(Sales Amt)", "color": "Region"},
+                            "C": {"cols": "Region", "rows": "sum(Sales Amt)", "color": "sum(Sales Amt)"},
+                            "N": {"cols": "Region", "rows": "sum(Sales Amt)"}}
+        dash = {"size": [1400, 900], "layout": [list(sheets)]}
+        if legends is not None:
+            dash["legends"] = legends
+        s = {"datasources": {"sf": SNOWFLAKE}, "sheets": sheets, "dashboards": {"D": dash}}
+        return ET.fromstring(build(s, EXAMPLE))
+
+    def color_zones(self, wb):
+        return [z for z in wb.iter("zone") if z.get("type-v2") == "color"]
+
+    def test_color_legend_zone_matches_reference(self):
+        wb = self.legends_wb(["B"])
+        (z,) = self.color_zones(wb)
+        enc = [w for w in wb.iter("worksheet") if w.get("name") == "B"][0].find(".//encodings/color")
+        self.assertEqual({k: z.get(k) for k in ("name", "pane-specification-id", "param", "type-v2", "h", "w")},
+                         {"name": "B", "pane-specification-id": "0", "param": enc.get("column"),
+                          "type-v2": "color", "h": "7333", "w": "11429"})
+        self.assertTrue(enc.get("column").endswith("[none:REGION:nk]"))
+        self.assertEqual(z.find("zone-style/format[@attr='margin']").get("value"), "4")
+        side = wb.find(".//dashboard/zones/zone/zone").findall("zone")[1]
+        self.assertEqual((side.get("is-fixed"), side.get("fixed-size")), ("true", "160"))
+        # Legends add no dashboard-level datasources/dependencies (REF-FILTERS lists only the filter).
+        self.assertIsNone(wb.find(".//dashboard/datasources"))
+
+    def test_auto_legends_dedupe_and_skip_continuous(self):
+        zones = self.color_zones(self.legends_wb())
+        self.assertEqual([z.get("name") for z in zones], ["A"])  # B repeats A's field; C is a measure
+
+    def test_legends_off(self):
+        wb = self.legends_wb([])
+        self.assertFalse(self.color_zones(wb))
+        self.assertEqual(wb.find(".//dashboard/zones/zone/zone").get("param"), "vert")
+
+    def test_legend_stacks_below_filter_control(self):
+        wb = self.filtered()  # sheet S has no color: no legend
+        self.assertFalse(self.color_zones(wb))
+        sf = dict(SNOWFLAKE, calcs={"Recent": {"formula": "{ FIXED : MAX([ORDER_TS]) } = [ORDER_TS]",
+                                               "type": "boolean"}})
+        s = {"datasources": {"sf": sf},
+             "sheets": {"S": {"cols": "Region", "rows": "sum(Sales Amt)", "color": "Region",
+                              "filters": {"Recent": True}}},
+             "dashboards": {"D": {"size": [1400, 900], "layout": [["S"]],
+                                  "filters": [{"sheet": "S", "field": "Recent"}]}}}
+        side = ET.fromstring(build(s, EXAMPLE)).find(".//dashboard/zones/zone/zone").findall("zone")[1]
+        filt, leg = side.findall("zone")
+        self.assertEqual((filt.get("type-v2"), leg.get("type-v2")), ("filter", "color"))
+        self.assertEqual(int(leg.get("y")), int(filt.get("y")) + int(filt.get("h")))
+
+    def test_legend_errors(self):
+        for legends, msg in ((["X"], "not in its layout"), (["N"], "no discrete 'color'"),
+                             (["C"], "no discrete 'color'"), ("A", "list")):
+            with self.assertRaises(SystemExit) as cm:
+                self.legends_wb(legends)
+            self.assertIn(msg, str(cm.exception))
+
     def test_missing_columns_errors(self):
         bad = {"snowflake": SNOWFLAKE["snowflake"]}
         with self.assertRaises(SystemExit) as cm:

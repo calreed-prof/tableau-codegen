@@ -18,7 +18,9 @@ Each item ships as its own PR, backed by a Desktop-saved reference. Done = merge
 - **M1 Filters:** worksheet filters and dashboard filter controls. Part 1 (boolean `true`, from
   REF-FILTERS) is in `feat/m1-filters`; categorical member lists need one more reference (see
   `CLAUDE.md` → Current status); top-N later.
-- **M2 Legends:** auto-add color/size legends to dashboards for sheets that use them.
+- **M2 Legends:** auto-add color/size legends to dashboards for sheets that use them. Color legends
+  for dimensions are in `feat/m2-legends` (REF-FILTERS); size and continuous color legends need a
+  reference.
 - **M3 Layout:** row heights / column widths, dashboard title, text boxes.
 - **M4 Parameters:** list parameters, parameter controls, calcs that reference parameters
   (lets `introspect` keep parameter-driven calcs).

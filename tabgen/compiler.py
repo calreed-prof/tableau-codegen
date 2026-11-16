@@ -458,6 +458,7 @@ def worksheet_xml(parent, name, spec, ds):
 # ---------------------------------------------------------------- dashboards
 SIDE_PX = 160         # Desktop's fixed-width column for filter controls/legends (REF-FILTERS)
 FILTER_CARD_PX = 89   # height Desktop gave a boolean filter control (REF-FILTERS)
+LEGEND_PX = 66        # height Desktop gave a categorical color legend (REF-FILTERS)
 
 
 def dashboard_controls(name, spec, sheets, sheet_source):
@@ -480,7 +481,41 @@ def dashboard_controls(name, spec, sheets, sheet_source):
     return out
 
 
-def dashboard_xml(parent, name, spec, ids, controls=()):
+def dashboard_legends(name, spec, sheets, sheet_source):
+    """Resolve a dashboard's color legends; return [(sheet, color field ref)].
+    Default: one legend per distinct discrete color field among the layout's sheets. An explicit
+    "legends" list of sheet names picks them; [] turns legends off. Only legends for a discrete
+    (nominal) color field are backed by a Desktop reference (REF-FILTERS): size legends and
+    continuous color legends aren't emitted."""
+    placed = [s for row in spec["layout"] for s in row]
+    explicit = "legends" in spec
+    wanted = spec.get("legends", placed)
+    if not isinstance(wanted, list) or not all(isinstance(s, str) for s in wanted):
+        raise SpecError(f"Dashboard {name!r}: 'legends' must be a list of sheet names, e.g. [\"Sales\"] "
+                        f"(or [] for none)")
+    out, seen = [], set()
+    for sheet in wanted:
+        if sheet not in placed:
+            raise SpecError(f"Dashboard {name!r}: legend sheet {sheet!r} is not in its layout")
+        color = sheets[sheet].get("color")
+        ref = None
+        if color:
+            ds = sheet_source(sheet)
+            ref, inst = ds.ref(*parse_field(color))
+            if inst["type"] != "nominal":
+                ref = None
+        if ref is None:
+            if explicit:
+                raise SpecError(f"Dashboard {name!r}: sheet {sheet!r} has no discrete 'color' field to show "
+                                f"a legend for (only color legends for dimensions are supported so far)")
+            continue
+        if ref not in seen:
+            seen.add(ref)
+            out.append((sheet, ref))
+    return out
+
+
+def dashboard_xml(parent, name, spec, ids, controls=(), legends=()):
     W, H = spec.get("size", [1200, 800])
     db = sub(parent, "dashboard", enable_sort_zone_taborder="true", name=name)
     sub(db, "style")
@@ -507,9 +542,10 @@ def dashboard_xml(parent, name, spec, ids, controls=()):
     # Zone coordinates are in 1/100000ths of the dashboard; outer padding as Desktop does.
     X0, Y0, IW, IH = 800, 1000, 98400, 98000
     root = sub(zones, "zone", h=100000, id=next(ids), type_v2="layout-basic", w=100000, x=0, y=0)
-    side_w = round(SIDE_PX * 100000 / W) if controls else 0
+    side = bool(controls or legends)
+    side_w = round(SIDE_PX * 100000 / W) if side else 0
     GW = IW - side_w
-    if controls:
+    if side:
         # Grid and a fixed-width side column, side by side (REF-FILTERS).
         outer = sub(root, "zone", h=IH, id=next(ids), param="horz", type_v2="layout-flow", w=IW, x=X0, y=Y0)
     else:
@@ -523,15 +559,25 @@ def dashboard_xml(parent, name, spec, ids, controls=()):
         for c, sheet in enumerate(row):
             z = sub(horz, "zone", h=rh, id=next(ids), name=sheet, w=cw, x=X0 + c * cw, y=y)
             zone_style(z, "4")
-    if controls:
+    if side:
+        # Filter controls first, then color legends, stacked top-down (REF-FILTERS).
         sx = X0 + GW
-        side = sub(outer, "zone", fixed_size=SIDE_PX, h=IH, id=next(ids), is_fixed="true", param="vert",
-                   type_v2="layout-flow", w=side_w, x=sx, y=Y0)
+        col = sub(outer, "zone", fixed_size=SIDE_PX, h=IH, id=next(ids), is_fixed="true", param="vert",
+                  type_v2="layout-flow", w=side_w, x=sx, y=Y0)
+        y = Y0
         fh = round(FILTER_CARD_PX * 100000 / H)
-        for i, (sheet, ds, field) in enumerate(controls):
-            z = sub(side, "zone", h=fh, id=next(ids), name=sheet, param=ds.ref(field, "none")[0],
-                    type_v2="filter", values="database", w=side_w, x=sx, y=Y0 + i * fh)
+        for sheet, ds, field in controls:
+            z = sub(col, "zone", h=fh, id=next(ids), name=sheet, param=ds.ref(field, "none")[0],
+                    type_v2="filter", values="database", w=side_w, x=sx, y=y)
             zone_style(z, "4")
+            y += fh
+        lh = round(LEGEND_PX * 100000 / H)
+        for sheet, ref in legends:
+            # Legends add nothing to the dashboard's datasource-dependencies (REF-FILTERS).
+            z = sub(col, "zone", h=lh, id=next(ids), name=sheet, pane_specification_id="0", param=ref,
+                    type_v2="color", w=side_w, x=sx, y=y)
+            zone_style(z, "4")
+            y += lh
     zone_style(root, "8")
     sub(db, "simple-id", uuid=guid("db" + name))
 
@@ -595,7 +641,8 @@ def build(spec, base_dir):
                 for s in row:
                     if s not in spec["sheets"]:
                         raise SpecError(f"Dashboard {name!r} references unknown sheet {s!r}")
-            dashboard_xml(dbs, name, d, ids, dashboard_controls(name, d, spec["sheets"], sheet_source))
+            dashboard_xml(dbs, name, d, ids, dashboard_controls(name, d, spec["sheets"], sheet_source),
+                          dashboard_legends(name, d, spec["sheets"], sheet_source))
 
     windows_xml(wb, list(spec["sheets"]), dashboards)
     ET.indent(wb, space="  ")

@@ -14,7 +14,12 @@ before changing the compiler.
   precision 38/scale 0, date 7, real precision 15).
 - `feat/m1-filters` (M1, part 1): boolean worksheet filters (`true`) + dashboard filter controls,
   from REF-FILTERS (`private/references/filters-legends/`, see `docs/FORMAT.md`).
-- **Next: M2 Legends.** REF-FILTERS already shows a color legend zone; no new reference needed.
+- `feat/m2-legends` (M2, part 1): dashboard color legends for dimension color fields, auto-added
+  (one per distinct color field) or picked with `legends`, from REF-FILTERS.
+- **Next:** M1 part 2 (below) once its reference exists; otherwise M3 Layout. M2 part 2 (size and
+  continuous color legends) needs a reference: in a saved workbook, color a sheet by a measure and
+  put a measure on size, show both legends on the dashboard, and save as
+  `private/references/legends-size/desktop-saved.twb`.
 - **M1 part 2 (categorical member filters)** needs a reference: in the same workbook, filter a
   string field to two values on one sheet, show its control, and save as
   `private/references/filters-categorical/desktop-saved.twb`.
