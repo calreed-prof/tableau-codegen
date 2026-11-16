@@ -790,8 +790,12 @@ def dashboard_xml(parent, name, spec, ids, controls=(), legends=(), params=(), p
     # Equal shares of what's left, in px, pinned so Desktop keeps them (see pin()).
     grid_w_px = W - 2 * PAD_PX - (SIDE_PX if side else 0)
     grid_h_px = H - 2 * PAD_PX - (TITLE_PX if spec.get("title") else 0) - (TEXT_PX if spec.get("text") else 0)
+    if any(sum(v for v in row if v is not None) >= grid_w_px for row in widths):
+        raise SpecError(f"Dashboard {name!r}: fixed 'col_widths' leave no room for the other sheets")
     heights = pin(heights, grid_h_px)
     widths = [pin(row, grid_w_px) for row in widths]
+    if any(v is not None and v <= 0 for v in heights):
+        raise SpecError(f"Dashboard {name!r}: too many rows for its height")
     if any(v is not None and v <= 2 * SHEET_MARGIN_PX for row in widths for v in row):
         raise SpecError(f"Dashboard {name!r}: too many sheets in a row for its width")
     hs = [None if v is None else round(v * uy) for v in heights]

@@ -138,7 +138,10 @@ class CompilerTests(unittest.TestCase):
                           ({"text": "a\nb"}, "one non-empty line"), ({"layout": []}, "non-empty"),
                           ({"layout": None}, "non-empty"), ({"layout": [["S1"], "S2x"]}, "non-empty"),
                           ({"layout": [["S1", 3]]}, "sheet names"),
-                          ({"col_widths": [[8, None], [None]]}, "more than 8px")):
+                          ({"col_widths": [[8, None], [None]]}, "more than 8px"),
+                          ({"layout": [["S1", "S2", "S3"]], "col_widths": [[1190, None, None]]}, "no room"),
+                          ({"size": [100, 800], "layout": [["S1", "S2", "S3"] * 4]}, "too many sheets"),
+                          ({"size": [1200, 30], "layout": [["S1"]] * 15}, "too many rows")):
             with self.assertRaises(SystemExit) as cm:
                 self.layout_db(**dash)
             self.assertIn(msg, str(cm.exception))
