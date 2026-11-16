@@ -13,14 +13,13 @@ Each item ships as its own PR, backed by a Desktop-saved reference. Done = merge
 - **Process (PR #1):** independent PR reviewer agent, CI on Python 3.9, git hooks, leak check,
   golden tests.
 - **Fix: Snowflake metadata remote-types** match the Desktop reference (see `docs/FORMAT.md`).
+- **M1 Filters (part 1, PR #4):** boolean worksheet filters + dashboard filter controls.
+- **M2 Legends (part 1, PR #5):** dashboard color legends for dimension color fields.
 
 ## Next (in order)
-- **M1 Filters:** worksheet filters and dashboard filter controls. Part 1 (boolean `true`, from
-  REF-FILTERS) is in `feat/m1-filters`; categorical member lists need one more reference (see
+- **M1 Filters (part 2):** categorical member lists need one more reference (see
   `CLAUDE.md` → Current status); top-N later.
-- **M2 Legends:** auto-add color/size legends to dashboards for sheets that use them. Color legends
-  for dimensions are in `feat/m2-legends` (REF-FILTERS); size and continuous color legends need a
-  reference.
+- **M2 Legends (part 2):** size and continuous color legends; needs a reference (see `CLAUDE.md`).
 - **M3 Layout:** row heights / column widths, dashboard title, text boxes.
 - **M4 Parameters:** list parameters, parameter controls, calcs that reference parameters
   (lets `introspect` keep parameter-driven calcs).
