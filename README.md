@@ -9,8 +9,8 @@ python3 -m tabgen introspect path/to/existing.twb > start.json       # lift conn
 python3 -m unittest discover tests
 ```
 
-Status: CSV and live Snowflake (browser SSO) sources, calcs, bar/line/circle charts and grid
-dashboards are verified in Desktop. See `ROADMAP.md` for what's next.
+Status: CSV and live Snowflake (browser SSO) sources, calcs, bar/line/circle charts, grid
+dashboards, boolean filters with dashboard controls, and color legends are verified in Desktop. See `ROADMAP.md` for what's next.
 
 ## Repo layout
 

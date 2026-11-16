@@ -22,6 +22,10 @@ Evidence keys:
 - **OPEN-CSV** / **OPEN-SF**: `examples/superstore-mini` and the private Snowflake example were
   generated and opened in Desktop 2026.2.1 by the human, rendering correctly (2026-11-10). Not
   machine-checkable: it's a recorded human observation.
+- **OPEN-M2**: generated with PR #5 and opened in Desktop 2026.2.1 by the human, rendering correctly
+  (2026-11-16): `examples/superstore-mini` (one legend, no filter control), `generated-m2.twb`
+  next to REF-FILTERS (its `spec.json` built with a one-sheet `legends` override; filter + legend), and the private
+  Snowflake example (two legends, one on a calculated string field, no filter control).
 - **OBS**: other recorded observations from the 2026-11-10 session (no file to grep).
 
 ## Workbook envelope
@@ -159,11 +163,11 @@ opened it (OPEN-SF).
 | Filter control zone: `<zone name=<sheet> param=<filter field ref> type-v2='filter' values='database'>`, margin 4, h = 89px for a boolean | REF-FILTERS |
 | A dashboard with a filter control gets `<datasources>` and a `<datasource-dependencies>` (filter field's column + column-instance only, not calc inputs) between `<size>` and `<zones>` | REF-FILTERS |
 | Color legend: `<zone name=<sheet> pane-specification-id='0' param=<sheet's color field ref> type-v2='color'>`, margin 4, h = 66px, in the same side column below the filter controls | REF-FILTERS |
+| A side column holding legends only (no filter control); a legend on a calculated dimension | OPEN-M2 |
 | A legend adds nothing to the dashboard's `<datasources>` / `<datasource-dependencies>` (REF-FILTERS lists only the filter's field there, not `METRIC`) | REF-FILTERS |
 | Worksheet windows need `<cards>` (left: pages/filters/marks; top: columns/rows/title); dashboard windows need `<viewpoints>`, `<active>` | REF-CSV, OPEN-CSV |
 
 | Unverified / not emitted (legends) | Notes |
 |---|---|
 | Size legends; color legends for a measure (continuous) or a date part (ordinal) | No reference: auto mode skips them, an explicit `legends` entry is a spec error |
-| A side column holding legends only (no filter control) | Same zones as REF-FILTERS minus the filter; needs an open in Desktop (M2 PR) |
 | Legend height for many members | Desktop gave 66px for `METRIC`; we always use 66px and let the zone scroll |

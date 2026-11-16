@@ -10,12 +10,12 @@ before changing the compiler.
 - Done: M0 core (CSV + live Snowflake OAuth sources, calcs, marks/encodings, grid dashboards,
   `introspect`) and the dev process (PR #1: reviewer agent, CI, hooks, leak + golden checks).
 - PR #2 (docs: this file, README spec reference, `docs/FORMAT.md` evidence log).
-- `fix/snowflake-remote-types`: live Snowflake metadata now matches REF-SF (integer 131 +
+- PR #3: live Snowflake metadata now matches REF-SF (integer 131 +
   precision 38/scale 0, date 7, real precision 15).
-- `feat/m1-filters` (M1, part 1): boolean worksheet filters (`true`) + dashboard filter controls,
+- PR #4 (M1 part 1): boolean worksheet filters (`true`) + dashboard filter controls,
   from REF-FILTERS (`private/references/filters-legends/`, see `docs/FORMAT.md`).
-- `feat/m2-legends` (M2, part 1): dashboard color legends for dimension color fields, auto-added
-  (one per distinct color field) or picked with `legends`, from REF-FILTERS.
+- PR #5 (M2 part 1): dashboard color legends for dimension color fields, auto-added or picked with
+  `legends`; REF-FILTERS + OPEN-M2.
 - **Next:** M1 part 2 (below) once its reference exists; otherwise M3 Layout. M2 part 2 (size and
   continuous color legends) needs a reference: in a saved workbook, color a sheet by a measure and
   put a measure on size, show both legends on the dashboard, and save as
@@ -30,7 +30,10 @@ before changing the compiler.
 1. **Never commit to `main`.** Branch per change: `feat/<roadmap-id>-<slug>`, `fix/<slug>`, `chore/<slug>`.
 2. **One roadmap item per PR.** Name the item from `ROADMAP.md` in the PR. Unrelated refactors,
    "while I was here" changes, and features not on the roadmap go in a separate PR or nowhere.
-3. Open a PR with the template filled in. Run `python3 -m unittest discover tests` and
+3. **Update the docs in the same PR**: the "Current status" section above, `docs/FORMAT.md` (new
+   facts + evidence keys, and anything a Desktop open has since verified), `ROADMAP.md`, and
+   `README.md` when the spec changes. Docs-only follow-ups are a sign this step was skipped.
+   Open a PR with the template filled in. Run `python3 -m unittest discover tests` and
    `python3 scripts/check_leaks.py --require-denylist` first; both must pass, and CI must be green.
 4. **Independent review.** Run the `pr-reviewer` agent on the PR (fresh context, not a fork of the
    authoring session). If the session didn't start in this repo, the agent type isn't registered:
