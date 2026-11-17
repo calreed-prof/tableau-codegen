@@ -7,10 +7,11 @@ before changing the compiler.
 
 ## Current status (keep this short; history lives in `ROADMAP.md` → Done)
 
-- **Next: M2 Legends part 2** once its reference below exists.
+- **M2 Legends part 2** (size + continuous color legends, PR #15) is done once the human opens its
+  output in Desktop (OPEN-M2P2): `python3 -m tabgen build references/legends-size/spec.json -o
+  out/legends.twb --open`; the dashboard should show the Profit color legend above the Sales size legend.
+- **Next: M1 Filters part 3** (see `ROADMAP.md`); each piece needs a Desktop reference first.
 - **Waiting on a Desktop reference** (the human builds these; see `references/README.md`):
-  - M2 part 2, size + continuous color legends: color a sheet by a measure, put a measure on size,
-    show both legends on a dashboard → `private/references/legends-size/desktop-saved.twb`.
   - Single-value string filter (low priority): → `private/references/filters-single/desktop-saved.twb`.
 - The human uses Tableau Desktop 2026.2.1 on macOS, Python 3.9, Snowflake with browser SSO.
 

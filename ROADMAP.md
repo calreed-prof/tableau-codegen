@@ -27,11 +27,11 @@ Each item ships as its own PR, backed by a Desktop-saved reference. Done = merge
 - **M4 Parameters (part 1, PR #12):** string list parameters, calcs that use them, dashboard
   parameter controls; `introspect` keeps those calcs; `check` also claims calcs and the Parameters
   source.
+- **M2 Legends (part 2, PR #15):** size legends and continuous color legends for measures.
 - **Fix (PR #13):** equal row/column splits are pinned (fixed px on all but the last slot); Desktop
   re-split our flexible zones by content, so "equal" splits weren't equal.
 
 ## Next (in order)
-- **M2 Legends (part 2):** size and continuous color legends; needs a reference (see `CLAUDE.md`).
 - **M1 Filters (part 3):** single values, exclude, numeric/date ranges, top-N; each needs a reference.
 - **M4 Parameters (part 2):** number/date parameters, ranges, aliases, controls next to filter
   controls; each needs a reference.

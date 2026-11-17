@@ -145,7 +145,7 @@ def claims(root):
         if db.find("zones") is None:
             raise ValueError(f"dashboard {name!r} has no <zones>: not a workbook this tool understands")
         zones = list(db.find("zones").iter("zone"))  # not <devicelayouts> (phone layout)
-        for kind in ("filter", "color", "paramctrl"):
+        for kind in ("filter", "color", "size", "paramctrl"):
             mine = [z for z in zones if z.get("type-v2") == kind]
             out[f"dashboard[{name}]/{kind} zone count"] = len(mine)
             for z in mine:  # one claim per zone, so a known diff can't hide the others

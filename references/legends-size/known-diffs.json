@@ -1,0 +1,4 @@
+{
+  "dashboard[Overview]/zone 1.1.1.1 layout-flow:horz geometry": "Desktop stored the only row 1 unit (1/100000 of the height) short of its vert container: 97999 vs 98000. Rounding inside Desktop; one sample, no rule to derive it from",
+  "dashboard[Overview]/zone 1.1.1.1.1 sheet:Sales and Profit geometry": "Same 97999 vs 98000 rounding as its row (the sheet fills the row)"
+}

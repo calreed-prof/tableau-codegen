@@ -156,11 +156,11 @@ Every option:
 - `filters` (optional): filter controls, `[{"sheet": ..., "field": ...}]`. The sheet must be in the
   layout and already filter on that field. Controls stack in a fixed 160px column on the right, as
   Desktop places them.
-- `legends` (optional): sheet names whose color legend to show. Default: one legend per distinct
-  color field among the layout's sheets (sheets coloring by the same field share one). `[]` for none.
-  Legends stack under the filter controls in the same 160px column. Only color legends for a
-  dimension are supported: a sheet listed here with no color, or colored by a measure, is an error
-  (the default just skips those). No size legends yet.
+- `legends` (optional): sheet names whose legends to show. Each sheet shows its color legend (for a
+  dimension or a measure), then its size legend (for a measure). Default: every sheet in the layout,
+  skipping a legend for a field already shown (sheets coloring by the same field share one). `[]` for
+  none. Legends stack under the filter controls in the same 160px column. A date part on color and a
+  dimension on size get no legend yet; a sheet listed here with no legend to show is an error.
 - `parameters` (optional): parameter names whose control (a drop-down) to show, below the legends in
   the same 160px column. Can't be combined with `filters` on one dashboard yet.
 
@@ -175,7 +175,7 @@ or empty `datasources`, a missing `sheets`, a column without `type`, or a list g
 ## Known limitations (see ROADMAP.md)
 
 - Filters: boolean `true` and lists of 2+ string values only (no single values, exclude, ranges or top-N yet).
-- Legends: color legends for dimensions only (no size or continuous color legends).
+- Legends: no legends for a date part on color or a dimension on size yet.
 - Layout: fixed px sizes or equal splits; one title (the dashboard name) and one line of text above
   the charts. No custom title text, multi-line or formatted text, or floating objects yet.
 - Parameters: string lists only; their controls can't share a dashboard with filter controls yet.

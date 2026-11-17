@@ -34,6 +34,7 @@ maintainer can open them; their facts are summarised here and in PRs.
 | **REF-LAYOUT** | Desktop 2026.2.1: `examples/superstore-mini` built by us, then by hand: top row fixed to 456px, its first sheet to 609px wide, Show Title, a text box above the charts (2026-11-16). Cleaned; directory replaced | committed: `references/layout-basic/` |
 | **REF-PARAMS** | Desktop 2026.2.1: `examples/superstore-mini` built by us, then by hand: a string list parameter "Metric Choice" (`Sales`, `Profit`), a calc "Chosen Metric" (`IF [Metric Choice] = 'Sales' THEN [Sales] ELSE [Profit] END`) replacing `sum(Profit)` on Profit by Category, and the parameter's control on the dashboard (2026-11-16). Desktop also re-split the flexible grid by itself (the human dragged nothing). Cleaned; directory replaced | committed: `references/parameters-list/` |
 | **REF-EVEN-SPLIT** | Desktop 2026.2.1: our build of two sheets side by side on a 1200x800 dashboard, both flexible with equal stored widths. Desktop showed them unequal (sized by content); the human dragged the divider back to 50/50 and saved (2026-11-16). Desktop wrote the left sheet as fixed 584 (= 592px − 8) and the right as flexible. Cleaned; directory replaced | committed: `references/even-split/` |
+| **REF-LEGENDS-SIZE** | Desktop 2026.2.1: our build of one circle sheet (Region × Category, SUM(Profit) on color, SUM(Sales) on size) on a 1200x800 dashboard, then by hand: the sheet's color and size legends turned on (2026-11-17). Cleaned; data directory replaced | committed: `references/legends-size/` |
 | **OPEN-EVEN-SPLIT** | Fix PR #13 output opened in Desktop 2026.2.1 and showed even splits (2026-11-16): the REF-EVEN-SPLIT spec rebuilt (50/50) and `examples/superstore-mini` (two equal rows, equal sheets in the top row, legend column) | observation |
 | **OPEN-CSV**, **OPEN-SF** | `examples/superstore-mini` and the private Snowflake example opened correctly in Desktop 2026.2.1 (2026-11-10) | observation |
 | **OPEN-M2** | PR #5 output opened correctly (2026-11-16): superstore-mini (a legend, no filter control); `generated-m2.twb` next to REF-FILTERS, a rebuild with one legend (filter + legend); the private Snowflake example (two legends, one on a calculated field) | observation |
@@ -77,7 +78,8 @@ Each used field also appears in the worksheet's `<datasource-dependencies>` as a
 | `Square`, `Text`, `Pie`, `Area` | **Unverified** |
 | `<encodings>`: `<color column=>` | OPEN-CSV, OPEN-SF |
 | `<text>`, `<tooltip>` | REF-SF |
-| `<size>`, `<lod>` | **Unverified** |
+| `<size column=>` for a measure (`[sum:<col>:qk]`), with a measure on `<color>` | REF-LEGENDS-SIZE |
+| `<size>` for a dimension, `<lod>` | **Unverified** |
 
 ## Calculated fields
 
@@ -211,7 +213,10 @@ opened it (OPEN-SF).
 | A dashboard with a filter control gets `<datasources>` and a `<datasource-dependencies>` (filter field's column + column-instance only, not calc inputs) between `<size>` and `<zones>` | REF-FILTERS |
 | Color legend: `<zone name=<sheet> pane-specification-id='0' param=<sheet's color field ref> type-v2='color'>`, margin 4, h = 66px, in the same side column below the filter controls | REF-FILTERS |
 | A side column holding legends only (no filter control); a legend on a calculated dimension | OPEN-M2 |
-| A legend adds nothing to the dashboard's `<datasources>` / `<datasource-dependencies>` (REF-FILTERS lists only the filter's field there, not `METRIC`) | REF-FILTERS |
+| A legend adds nothing to the dashboard's `<datasources>` / `<datasource-dependencies>` (REF-FILTERS lists only the filter's field there, not `METRIC`) | REF-FILTERS, REF-LEGENDS-SIZE |
+| Continuous color legend (measure on color): the same `type-v2='color'` zone with the measure's ref as `param` (`[sum:Profit:qk]`), h = 65px | REF-LEGENDS-SIZE |
+| Size legend (measure on size): `<zone name=<sheet> pane-specification-id='0' param=<size field ref> type-v2='size'>`, margin 4, h = 106px, directly below the same sheet's color legend in the side column | REF-LEGENDS-SIZE |
+| With a side column, Desktop stored the single row/sheet as h = 97999 inside a 98000 container (1 unit of rounding); we write 98000. Accepted in `references/legends-size/known-diffs.json` | REF-LEGENDS-SIZE |
 | Parameter control: `<zone mode='compact' param='[Parameters].[Parameter <digits>]' type-v2='paramctrl'>` (no `name`), margin 4, h = 52px, in the side column below a color legend. The dashboard gets `<datasources><datasource name='Parameters'/></datasources>` and a Parameters `<datasource-dependencies>` with the parameter's `<members>` | REF-PARAMS, OPEN-M4 |
 | Filter controls and parameter controls on one dashboard (order in the side column, and of the two sources in `<datasources>`) | **No reference**: a spec error |
 | Worksheet windows need `<cards>` (left: pages/filters/marks; top: columns/rows/title); dashboard windows need `<viewpoints>`, `<active>` | REF-CSV, OPEN-CSV |
@@ -223,5 +228,7 @@ opened it (OPEN-SF).
 
 | Unverified / not emitted (legends) | Notes |
 |---|---|
-| Size legends; color legends for a measure (continuous) or a date part (ordinal) | No reference: auto mode skips them, an explicit `legends` entry is a spec error |
+| Color legends for a date part (ordinal); size legends for a dimension | No reference: skipped; a sheet listed in `legends` with nothing else to show is a spec error |
+| Several sheets' color/size legends: order (we go sheet by sheet, color then size) and whether two sheets with the same measure share one legend (we share, as for dimensions) | **Unverified**: REF-LEGENDS-SIZE has one sheet |
+| Continuous color and size legend heights with other data or dashboard sizes | One sample each (65px, 106px at 1200x800) |
 | Legend height for many members | Desktop gave 66px for `METRIC`; we always use 66px and let the zone scroll |
