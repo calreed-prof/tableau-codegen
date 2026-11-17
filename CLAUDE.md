@@ -7,9 +7,6 @@ before changing the compiler.
 
 ## Current status (keep this short; history lives in `ROADMAP.md` → Done)
 
-- **M2 Legends part 2** (size + continuous color legends, PR #15) is done once the human opens its
-  output in Desktop (OPEN-M2P2): `python3 -m tabgen build references/legends-size/spec.json -o
-  out/legends.twb --open`; the dashboard should show the Profit color legend above the Sales size legend.
 - **Next: M1 Filters part 3** (see `ROADMAP.md`); each piece needs a Desktop reference first.
 - **Waiting on a Desktop reference** (the human builds these; see `references/README.md`):
   - Single-value string filter (low priority): → `private/references/filters-single/desktop-saved.twb`.

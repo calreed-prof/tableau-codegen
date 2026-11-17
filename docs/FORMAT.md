@@ -40,6 +40,7 @@ maintainer can open them; their facts are summarised here and in PRs.
 | **OPEN-M2** | PR #5 output opened correctly (2026-11-16): superstore-mini (a legend, no filter control); `generated-m2.twb` next to REF-FILTERS, a rebuild with one legend (filter + legend); the private Snowflake example (two legends, one on a calculated field) | observation |
 | **OPEN-M3** | PR #10 output opened correctly in Desktop 2026.2.1 (2026-11-16): a REF-LAYOUT rebuild; title + text with no side column (fixed bottom row, fixed right sheet); a text box with no title; the private filters dashboard with 8px padding | observation |
 | **OPEN-M4** | PR #12 output opened correctly in Desktop 2026.2.1 (2026-11-17, built after PR #13): `references/parameters-list/spec.json` rebuilt; switching the Metric Choice control to Profit changed the values in Profit by Category | observation |
+| **OPEN-M2P2** | PR #15 output (`references/legends-size/spec.json` rebuilt) opened correctly in Desktop 2026.2.1 (2026-11-17): the side column shows the SUM(Profit) color legend with the SUM(Sales) size legend below it, neither clipped | observation |
 | **OPEN-M1P2** | PR #7 output (`private/references/filters-categorical/generated.twb`) opened correctly (2026-11-16): side column shows Recent Run, Level (2 values) and the Metric legend, in that order; changing Level updates the chart | observation |
 | **OBS** | Other observations from the 2026-11-10 session | observation |
 
@@ -214,9 +215,9 @@ opened it (OPEN-SF).
 | Color legend: `<zone name=<sheet> pane-specification-id='0' param=<sheet's color field ref> type-v2='color'>`, margin 4, h = 66px, in the same side column below the filter controls | REF-FILTERS |
 | A side column holding legends only (no filter control); a legend on a calculated dimension | OPEN-M2 |
 | A legend adds nothing to the dashboard's `<datasources>` / `<datasource-dependencies>` (REF-FILTERS lists only the filter's field there, not `METRIC`) | REF-FILTERS, REF-LEGENDS-SIZE |
-| Continuous color legend (measure on color): the same `type-v2='color'` zone with the measure's ref as `param` (`[sum:Profit:qk]`), h = 65px | REF-LEGENDS-SIZE |
-| Size legend (measure on size): `<zone name=<sheet> pane-specification-id='0' param=<size field ref> type-v2='size'>`, margin 4, h = 106px, directly below the same sheet's color legend in the side column | REF-LEGENDS-SIZE |
-| With a side column, Desktop stored the single row/sheet as h = 97999 inside a 98000 container (1 unit of rounding); we write 98000. Accepted in `references/legends-size/known-diffs.json` | REF-LEGENDS-SIZE |
+| Continuous color legend (measure on color): the same `type-v2='color'` zone with the measure's ref as `param` (`[sum:Profit:qk]`), h = 65px | REF-LEGENDS-SIZE, OPEN-M2P2 |
+| Size legend (measure on size): `<zone name=<sheet> pane-specification-id='0' param=<size field ref> type-v2='size'>`, margin 4, h = 106px, directly below the same sheet's color legend in the side column | REF-LEGENDS-SIZE, OPEN-M2P2 |
+| With a side column, Desktop stored the single row/sheet as h = 97999 inside a 98000 container (1 unit of rounding); we write 98000. Accepted in `references/legends-size/known-diffs.json`; our 98000 renders fine | REF-LEGENDS-SIZE, OPEN-M2P2 |
 | Parameter control: `<zone mode='compact' param='[Parameters].[Parameter <digits>]' type-v2='paramctrl'>` (no `name`), margin 4, h = 52px, in the side column below a color legend. The dashboard gets `<datasources><datasource name='Parameters'/></datasources>` and a Parameters `<datasource-dependencies>` with the parameter's `<members>` | REF-PARAMS, OPEN-M4 |
 | Filter controls and parameter controls on one dashboard (order in the side column, and of the two sources in `<datasources>`) | **No reference**: a spec error |
 | Worksheet windows need `<cards>` (left: pages/filters/marks; top: columns/rows/title); dashboard windows need `<viewpoints>`, `<active>` | REF-CSV, OPEN-CSV |
