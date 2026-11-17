@@ -143,7 +143,9 @@ Every option:
 **Dashboards:**
 - `size` is `[width, height]` in px. Default `[1200, 800]`.
 - `layout` is a list of rows, each a list of sheet names. Rows split the height equally, and sheets
-  split each row's width equally, unless sized:
+  split each row's width equally, unless sized. Tableau re-sizes flexible zones by content, so equal
+  shares are written as fixed px on every row/sheet but the last (which fills the rest), the way
+  Desktop saves a split you drag to 50/50:
   - `row_heights` (optional): one entry per row, px or `null`, e.g. `[456, null]`. A px row is fixed
     at that height; `null` rows share what's left. At least one must be `null`.
   - `col_widths` (optional): one list per row, one entry per sheet, px or `null`, e.g.

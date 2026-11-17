@@ -1,0 +1,10 @@
+{
+  "datasources": { "sales": { "csv": "sales.csv", "caption": "Sales" } },
+  "sheets": {
+    "Sales by Region":    { "cols": "Region", "rows": "sum(Sales)", "mark": "bar" },
+    "Profit by Category": { "rows": "Category", "cols": "sum(Profit)", "mark": "bar" }
+  },
+  "dashboards": {
+    "Half and Half": { "size": [1200, 800], "layout": [["Sales by Region", "Profit by Category"]] }
+  }
+}

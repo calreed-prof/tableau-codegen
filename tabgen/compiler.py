@@ -598,6 +598,20 @@ def split(total, sizes):
     return out
 
 
+def pin(sizes, total_px):
+    """Desktop ignores the stored size of a flexible zone and re-splits flexible space by content when
+    it opens a workbook (REF-EVEN-SPLIT). So an equal split is written the way Desktop writes one: every
+    flexible slot but the last gets a fixed px share, and the last fills the rest."""
+    free = [i for i, v in enumerate(sizes) if v is None]
+    if len(free) <= 1:
+        return list(sizes)
+    share = (total_px - sum(v for v in sizes if v is not None)) // len(free)
+    out = list(sizes)
+    for i in free[:-1]:
+        out[i] = share
+    return out
+
+
 def dashboard_layout(name, spec):
     """Validate layout and the optional sizing keys; return (row_heights, col_widths) in px or None."""
     grid = spec.get("layout")
@@ -773,6 +787,18 @@ def dashboard_xml(parent, name, spec, ids, controls=(), legends=(), params=(), p
     hs = [None if v is None else round(v * uy) for v in heights]
     if sum(v for v in hs if v is not None) >= CH:
         raise SpecError(f"Dashboard {name!r}: fixed 'row_heights' leave no room for the other rows")
+    # Equal shares of what's left, in px, pinned so Desktop keeps them (see pin()).
+    grid_w_px = W - 2 * PAD_PX - (SIDE_PX if side else 0)
+    grid_h_px = H - 2 * PAD_PX - (TITLE_PX if spec.get("title") else 0) - (TEXT_PX if spec.get("text") else 0)
+    if any(sum(v for v in row if v is not None) >= grid_w_px for row in widths):
+        raise SpecError(f"Dashboard {name!r}: fixed 'col_widths' leave no room for the other sheets")
+    heights = pin(heights, grid_h_px)
+    widths = [pin(row, grid_w_px) for row in widths]
+    if any(v is not None and v <= 0 for v in heights):
+        raise SpecError(f"Dashboard {name!r}: too many rows for its height")
+    if any(v is not None and v <= 2 * SHEET_MARGIN_PX for row in widths for v in row):
+        raise SpecError(f"Dashboard {name!r}: too many sheets in a row for its width")
+    hs = [None if v is None else round(v * uy) for v in heights]
     ry = y
     for row, px_h, rh, px_ws in zip(grid, heights, split(CH, hs), widths):
         # A fixed row is a fixed horz container; its fixed-size is its full height (REF-LAYOUT).
