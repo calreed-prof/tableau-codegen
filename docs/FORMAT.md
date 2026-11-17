@@ -38,6 +38,7 @@ maintainer can open them; their facts are summarised here and in PRs.
 | **OPEN-CSV**, **OPEN-SF** | `examples/superstore-mini` and the private Snowflake example opened correctly in Desktop 2026.2.1 (2026-11-10) | observation |
 | **OPEN-M2** | PR #5 output opened correctly (2026-11-16): superstore-mini (a legend, no filter control); `generated-m2.twb` next to REF-FILTERS, a rebuild with one legend (filter + legend); the private Snowflake example (two legends, one on a calculated field) | observation |
 | **OPEN-M3** | PR #10 output opened correctly in Desktop 2026.2.1 (2026-11-16): a REF-LAYOUT rebuild; title + text with no side column (fixed bottom row, fixed right sheet); a text box with no title; the private filters dashboard with 8px padding | observation |
+| **OPEN-M4** | PR #12 output opened correctly in Desktop 2026.2.1 (2026-11-17, built after PR #13): `references/parameters-list/spec.json` rebuilt; switching the Metric Choice control to Profit changed the values in Profit by Category | observation |
 | **OPEN-M1P2** | PR #7 output (`private/references/filters-categorical/generated.twb`) opened correctly (2026-11-16): side column shows Recent Run, Level (2 values) and the Metric legend, in that order; changing Level updates the chart | observation |
 | **OBS** | Other observations from the 2026-11-10 session | observation |
 
@@ -86,7 +87,7 @@ Each used field also appears in the worksheet's `<datasource-dependencies>` as a
 | Row-level measures (e.g. `[X] / 100`) go on shelves with a normal aggregation (`avg:Calculation_...`); aggregate calcs (`SUM(..)/SUM(..)`) use `usr:` | OPEN-SF, OPEN-CSV |
 | A sheet's `<datasource-dependencies>` also lists the columns a used calc names (e.g. `[METRIC]` for `IF [METRIC] = ...`), as `<column>` only, with no `<column-instance>`; all columns sorted by name | REF-FILTERS (two sheets) |
 | Boolean calc: `datatype="boolean" role="dimension" type="nominal"`, on shelves/filters as `[none:Calculation_...:nk]` | REF-FILTERS |
-| A calc names a parameter as `[Parameters].[Parameter <digits>]` (internal name, not the caption). The spec writes `[Caption]` and the compiler rewrites it | REF-PARAMS, REF-SF |
+| A calc names a parameter as `[Parameters].[Parameter <digits>]` (internal name, not the caption). The spec writes `[Caption]` and the compiler rewrites it | REF-PARAMS, REF-SF, OPEN-M4 |
 | A data source whose calcs use parameters lists them in a `<datasource-dependencies datasource='Parameters'>` (parameter `<column>` without `<members>`) after `<semantic-values>`, before `<object-graph>` | REF-PARAMS |
 | A sheet using such a calc adds `<datasource name='Parameters' />` (no caption) after its data source in `<view><datasources>`, and a Parameters `<datasource-dependencies>` (no members) **before** the data source's | REF-PARAMS |
 | Calcs whose inputs are calcs that use a parameter: we list only the parameters a sheet's used calcs name directly; several parameters in one dependency block are sorted by internal name | **Unverified**: REF-PARAMS has one parameter, used directly |
@@ -96,7 +97,7 @@ Each used field also appears in the worksheet's `<datasource-dependencies>` as a
 | Fact | Evidence |
 |---|---|
 | Parameters live in a pseudo source after the real ones: `<datasource hasconnection='false' inline='true' name='Parameters' version='18.1'>` with `<aliases enabled='yes'/>`, then one `<column>` per parameter | REF-PARAMS, REF-SF |
-| String list parameter: `<column caption=<name> datatype='string' name='[Parameter <digits>]' param-domain-type='list' role='measure' type='nominal' value='"<current>"'>`, `<calculation class='tableau' formula='"<current>"'/>`, `<members><member value='"<v>"'/>…</members>` in list order | REF-PARAMS, REF-SF |
+| String list parameter: `<column caption=<name> datatype='string' name='[Parameter <digits>]' param-domain-type='list' role='measure' type='nominal' value='"<current>"'>`, `<calculation class='tableau' formula='"<current>"'/>`, `<members><member value='"<v>"'/>…</members>` in list order | REF-PARAMS, REF-SF, OPEN-M4 |
 | Integer/real/date/boolean parameters, range or "all" domains, member aliases (display names), values containing `"` or `\` | **No reference**: the spec rejects them, `introspect` drops calcs that use them |
 
 ## Filters
@@ -211,7 +212,7 @@ opened it (OPEN-SF).
 | Color legend: `<zone name=<sheet> pane-specification-id='0' param=<sheet's color field ref> type-v2='color'>`, margin 4, h = 66px, in the same side column below the filter controls | REF-FILTERS |
 | A side column holding legends only (no filter control); a legend on a calculated dimension | OPEN-M2 |
 | A legend adds nothing to the dashboard's `<datasources>` / `<datasource-dependencies>` (REF-FILTERS lists only the filter's field there, not `METRIC`) | REF-FILTERS |
-| Parameter control: `<zone mode='compact' param='[Parameters].[Parameter <digits>]' type-v2='paramctrl'>` (no `name`), margin 4, h = 52px, in the side column below a color legend. The dashboard gets `<datasources><datasource name='Parameters'/></datasources>` and a Parameters `<datasource-dependencies>` with the parameter's `<members>` | REF-PARAMS |
+| Parameter control: `<zone mode='compact' param='[Parameters].[Parameter <digits>]' type-v2='paramctrl'>` (no `name`), margin 4, h = 52px, in the side column below a color legend. The dashboard gets `<datasources><datasource name='Parameters'/></datasources>` and a Parameters `<datasource-dependencies>` with the parameter's `<members>` | REF-PARAMS, OPEN-M4 |
 | Filter controls and parameter controls on one dashboard (order in the side column, and of the two sources in `<datasources>`) | **No reference**: a spec error |
 | Worksheet windows need `<cards>` (left: pages/filters/marks; top: columns/rows/title); dashboard windows need `<viewpoints>`, `<active>` | REF-CSV, OPEN-CSV |
 
