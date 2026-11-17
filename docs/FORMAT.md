@@ -232,4 +232,5 @@ opened it (OPEN-SF).
 | Color legends for a date part (ordinal); size legends for a dimension | No reference: skipped; a sheet listed in `legends` with nothing else to show is a spec error |
 | Several sheets' color/size legends: order (we go sheet by sheet, color then size) and whether two sheets with the same measure share one legend (we share, as for dimensions) | **Unverified**: REF-LEGENDS-SIZE has one sheet |
 | Continuous color and size legend heights with other data or dashboard sizes | One sample each (65px, 106px at 1200x800) |
+| Legends for other continuous fields: `avg`/`min`/`max`, aggregate calcs, an unaggregated number | **Unverified**: emitted the same way, but REF-LEGENDS-SIZE only shows `sum` |
 | Legend height for many members | Desktop gave 66px for `METRIC`; we always use 66px and let the zone scroll |
