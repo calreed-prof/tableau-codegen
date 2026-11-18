@@ -580,7 +580,9 @@ def worksheet_xml(parent, name, spec, ds):
 SIDE_PX = 160         # Desktop's fixed-width column for filter controls/legends (REF-FILTERS)
 FILTER_CARD_PX = {"boolean": 89,   # boolean filter control (REF-FILTERS)
                   "string": 203}   # multi-value list control (REF-FILTERS-CAT)
-LEGEND_PX = 66        # height Desktop gave a categorical color legend (REF-FILTERS)
+LEGEND_PX = {"nominal": 66,       # categorical color legend (REF-FILTERS)
+             "quantitative": 65,  # continuous color legend, for a measure (REF-LEGENDS-SIZE)
+             "size": 106}         # size legend, for a measure (REF-LEGENDS-SIZE)
 PARAM_CTRL_PX = 52    # compact (drop-down) parameter control (REF-PARAMS)
 PAD_PX = 8            # outer padding: x = 8px of the width, y = 8px of the height (REF-LAYOUT, REF-FILTERS)
 TITLE_PX = 42         # dashboard title zone (REF-LAYOUT)
@@ -670,36 +672,39 @@ def dashboard_controls(name, spec, sheets, sheet_source):
 
 
 def dashboard_legends(name, spec, sheets, sheet_source):
-    """Resolve a dashboard's color legends; return [(sheet, color field ref)].
-    Default: one legend per distinct discrete color field among the layout's sheets. An explicit
-    "legends" list of sheet names picks them; [] turns legends off. Only legends for a discrete
-    (nominal) color field are backed by a Desktop reference (REF-FILTERS): size legends and
-    continuous color legends aren't emitted."""
+    """Resolve a dashboard's legends; return [(sheet, kind, field ref, height key)], kind being
+    "color" or "size". Each listed sheet gives its color legend, then its size legend (REF-LEGENDS-SIZE).
+    Default: every sheet in the layout, skipping a legend whose (kind, field) is already shown. An
+    explicit "legends" list of sheet names picks them; [] turns legends off. Backed by references:
+    color legends for a dimension (REF-FILTERS) or a measure, size legends for a measure
+    (REF-LEGENDS-SIZE). Color for a date part (ordinal) and size for a dimension aren't emitted."""
     placed = [s for row in spec["layout"] for s in row]
     explicit = "legends" in spec
     wanted = spec.get("legends", placed)
     if not isinstance(wanted, list) or not all(isinstance(s, str) for s in wanted):
         raise SpecError(f"Dashboard {name!r}: 'legends' must be a list of sheet names, e.g. [\"Sales\"] "
                         f"(or [] for none)")
+    supported = {"color": ("nominal", "quantitative"), "size": ("quantitative",)}
     out, seen = [], set()
     for sheet in wanted:
         if sheet not in placed:
             raise SpecError(f"Dashboard {name!r}: legend sheet {sheet!r} is not in its layout")
-        color = sheets[sheet].get("color")
-        ref = None
-        if color:
-            ds = sheet_source(sheet)
-            ref, inst = ds.ref(*parse_field(color))
-            if inst["type"] != "nominal":
-                ref = None
-        if ref is None:
-            if explicit:
-                raise SpecError(f"Dashboard {name!r}: sheet {sheet!r} has no discrete 'color' field to show "
-                                f"a legend for (only color legends for dimensions are supported so far)")
-            continue
-        if ref not in seen:
-            seen.add(ref)
-            out.append((sheet, ref))
+        found = []
+        for kind in ("color", "size"):
+            field = sheets[sheet].get(kind)
+            if not field:
+                continue
+            ref, inst = sheet_source(sheet).ref(*parse_field(field))
+            if inst["type"] in supported[kind]:
+                found.append((sheet, kind, ref, "size" if kind == "size" else inst["type"]))
+        if not found and explicit:
+            raise SpecError(f"Dashboard {name!r}: sheet {sheet!r} has no legend to show: it needs a 'color' "
+                            f"field (a dimension or a measure) or a measure on 'size' (date parts on color "
+                            f"and dimensions on size aren't supported yet)")
+        for item in found:
+            if item[1:3] not in seen:
+                seen.add(item[1:3])
+                out.append(item)
     return out
 
 
@@ -816,7 +821,7 @@ def dashboard_xml(parent, name, spec, ids, controls=(), legends=(), params=(), p
             cx += cw
         ry += rh
     if side:
-        # Filter controls first, then color legends, stacked top-down (REF-FILTERS).
+        # Filter controls first, then legends, stacked top-down (REF-FILTERS, REF-LEGENDS-SIZE).
         sx = X0 + GW
         col = sub(outer, "zone", fixed_size=SIDE_PX, h=CH, id=next(ids), is_fixed="true", param="vert",
                   type_v2="layout-flow", w=side_w, x=sx, y=y)
@@ -826,11 +831,11 @@ def dashboard_xml(parent, name, spec, ids, controls=(), legends=(), params=(), p
                     type_v2="filter", values="database", w=side_w, x=sx, y=y)
             zone_style(z, "4")
             y += fh
-        lh = round(LEGEND_PX * uy)
-        for sheet, ref in legends:
-            # Legends add nothing to the dashboard's datasource-dependencies (REF-FILTERS).
+        for sheet, kind, ref, hkey in legends:
+            # Legends add nothing to the dashboard's datasource-dependencies (REF-FILTERS, REF-LEGENDS-SIZE).
+            lh = round(LEGEND_PX[hkey] * uy)
             z = sub(col, "zone", h=lh, id=next(ids), name=sheet, pane_specification_id="0", param=ref,
-                    type_v2="color", w=side_w, x=sx, y=y)
+                    type_v2=kind, w=side_w, x=sx, y=y)
             zone_style(z, "4")
             y += lh
         ph = round(PARAM_CTRL_PX * uy)

@@ -360,9 +360,30 @@ class SnowflakeTests(unittest.TestCase):
         # Legends add no dashboard-level datasources/dependencies (REF-FILTERS lists only the filter).
         self.assertIsNone(wb.find(".//dashboard/datasources"))
 
-    def test_auto_legends_dedupe_and_skip_continuous(self):
+    def test_auto_legends_dedupe(self):
         zones = self.color_zones(self.legends_wb())
-        self.assertEqual([z.get("name") for z in zones], ["A"])  # B repeats A's field; C is a measure
+        self.assertEqual([z.get("name") for z in zones], ["A", "C"])  # B repeats A's field
+
+    # ---- M2 part 2: values from REF-LEGENDS-SIZE (references/legends-size, 1200x800: 65px, 106px)
+    def test_continuous_color_and_size_legends(self):
+        sheets = {"M": {"cols": "Region", "rows": "Fiscal Year", "color": "sum(Sales Amt)",
+                        "size": "sum(Sales Amt)", "mark": "circle"}}
+        side = [z for z in self.legends_wb(["M"], sheets).iter("zone") if z.get("pane-specification-id")]
+        self.assertEqual([(z.get("type-v2"), z.get("h")) for z in side],
+                         [("color", "7222"), ("size", "11778")])  # 65px, 106px of 900
+        self.assertTrue(all(z.get("param").endswith("[sum:SALES_AMT:qk]") for z in side))
+        self.assertEqual(int(side[1].get("y")), int(side[0].get("y")) + int(side[0].get("h")))
+
+    def test_unsupported_legend_encodings_skipped(self):
+        # A dimension on size and a date part on color have no reference: no legend for them.
+        sheets = {"S": {"cols": "Region", "rows": "sum(Sales Amt)", "size": "Region"},
+                  "T": {"cols": "Region", "rows": "sum(Sales Amt)", "color": "Order Ts"}}  # yr:...:ok
+        wb = self.legends_wb(None, sheets)
+        self.assertFalse([z for z in wb.iter("zone") if z.get("pane-specification-id")])
+        for legends in (["S"], ["T"]):
+            with self.assertRaises(SystemExit) as cm:
+                self.legends_wb(legends, sheets)
+            self.assertIn("no legend to show", str(cm.exception))
 
     def test_legends_off(self):
         wb = self.legends_wb([])
@@ -385,8 +406,8 @@ class SnowflakeTests(unittest.TestCase):
         self.assertEqual(int(leg.get("y")), int(filt.get("y")) + int(filt.get("h")))
 
     def test_legend_errors(self):
-        for legends, msg in ((["X"], "not in its layout"), (["N"], "no discrete 'color'"),
-                             (["C"], "no discrete 'color'"), ("A", "list")):
+        for legends, msg in ((["X"], "not in its layout"), (["N"], "no legend to show"),
+                             ("A", "list")):
             with self.assertRaises(SystemExit) as cm:
                 self.legends_wb(legends)
             self.assertIn(msg, str(cm.exception))

@@ -1,0 +1,14 @@
+{
+  "datasources": {
+    "sales": { "csv": "sales.csv", "caption": "Sales" }
+  },
+  "sheets": {
+    "Sales and Profit": {
+      "cols": "Region", "rows": "Category",
+      "color": "sum(Profit)", "size": "sum(Sales)", "mark": "circle"
+    }
+  },
+  "dashboards": {
+    "Overview": { "size": [1200, 800], "layout": [["Sales and Profit"]] }
+  }
+}
