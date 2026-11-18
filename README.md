@@ -196,12 +196,6 @@ New format facts come from workbooks saved by Tableau Desktop, never from guessi
 (who does what in Desktop, then `clean`, `spec.json`, `lock`, `check`) is in `references/README.md`;
 the rule itself is in `CLAUDE.md` → Evidence rule.
 
-## Private material
-
-Real company workbooks and specs with live connection details live in `private/` (git-ignored),
-along with `private/denylist.txt` (company terms the leak check blocks). Committed examples use
-placeholders (`your_account.snowflakecomputing.com`, `YOUR_WAREHOUSE`, ...).
-
 ## Development process
 
 See `CLAUDE.md` (rules and current status) and `ROADMAP.md` (scope). In short:
