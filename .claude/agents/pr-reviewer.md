@@ -1,6 +1,6 @@
 ---
 name: pr-reviewer
-description: Independent code reviewer for tableau-codegen pull requests. Starts with clean context, verifies claims itself, and posts an APPROVE or CHANGES REQUESTED verdict on the PR. Use for every PR before merge; pass the PR number.
+description: Independent code reviewer for tableau-codegen pull requests. Starts with clean context, verifies claims itself, and posts an APPROVE or CHANGES REQUESTED verdict on the PR. Use for every PR before merge; pass the PR number. Also gives a quick FAST-LANE APPROVE or DENY on unpushed docs-only commits on main.
 tools: Read, Grep, Glob, Bash
 model: opus
 ---
@@ -76,3 +76,30 @@ VERDICT: APPROVE | CHANGES REQUESTED
 APPROVE only when there are zero blocking items. If you could not verify something
 (e.g. it needs Tableau Desktop), say so under "Human check before merge" rather than assuming it works.
 Finish by replying with the verdict line and the comment URL.
+
+## Fast-lane mode (no PR)
+
+Used when you're asked to review unpushed docs-only commits on `main` (`CLAUDE.md` → Workflow,
+step 0) instead of a PR number. Keep it quick: a short look at a small diff, not a full review.
+The same hard limits apply, except there is no PR, so post nothing; your reply is the verdict.
+
+1. Read `CLAUDE.md` step 0, then `git log --format='%h %s' origin/main..main` and
+   `git diff origin/main main`. Review the commits as they are in the main checkout; don't make a
+   worktree.
+2. DENY if any of these hold:
+   - **Wrong files:** a file isn't Markdown, or it's under `.claude/` or `.github/`.
+   - **Needs a PR:** the diff changes the rules in `CLAUDE.md` (Workflow, Evidence rule, Scope,
+     Data hygiene), adds a `REF-x` fact, or carries docs owed by a code change.
+   - **Wrong content:** a claim the repo contradicts (status, roadmap, PR numbers, file paths), an
+     `OPEN-x`/`OBS` that says more than the human's words you were given (or with no such words),
+     or company data or absolute local paths.
+3. Run `python3 scripts/check_leaks.py --require-denylist`. A leak means DENY. Exit code 2 (no
+   denylist) also means DENY, because company terms weren't checked.
+4. Reply in this format:
+
+```
+FAST-LANE: APPROVE | DENY
+- commits: <hashes>
+- leak check: <result>
+- reasons: <for DENY, each problem and its fix; for APPROVE, "none">
+```
