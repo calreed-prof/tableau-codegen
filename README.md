@@ -23,7 +23,7 @@ examples/               runnable specs (Snowflake example uses placeholders); bu
                         git-ignored, regenerate them with `tabgen build`
 scripts/refdiff.py      reference tools: clean, diff, check (claimed XML vs Desktop), lock
 scripts/check_leaks.py  blocks company data, home paths and fingerprints from commits
-githooks/               local guards: no commits/pushes to main, leak check, tests
+githooks/               local guards: no commits/pushes to main (docs-only excepted), leak check, tests
 docs/FORMAT.md          verified facts about the TWB format, each with its evidence
 private/                git-ignored: real company workbooks, specs, denylist
 ```
@@ -203,5 +203,8 @@ See `CLAUDE.md` (rules and current status) and `ROADMAP.md` (scope). In short:
 2. An independent `pr-reviewer` agent posts its verdict as a PR comment.
 3. A human verifies the result in Desktop and merges.
 
+Docs-only changes (Markdown outside `.claude/` and `.github/`) can skip this and go straight to
+`main` (the "fast lane"; limits in `CLAUDE.md`).
+
 Run `git config core.hooksPath githooks` once per clone to enable the local guards: no commits or
-pushes to `main`, plus the leak check and tests before every commit.
+pushes to `main` except docs-only ones, plus the leak check and tests before every commit.

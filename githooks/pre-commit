@@ -1,9 +1,14 @@
 #!/bin/sh
-# Block commits on main, and commits that leak company data or break tests.
+# Block commits on main (except fast-lane docs-only changes), and commits that leak company data
+# or break tests.
+. "$(dirname "$0")/fastlane.sh"
 branch=$(git symbolic-ref --short HEAD 2>/dev/null)
 if [ "$branch" = "main" ]; then
-  echo "pre-commit: don't commit on main. Create a branch: git checkout -b feat/<item>-<slug>" >&2
-  exit 1
+  if ! fastlane_ok "$(git diff --cached --name-only --no-renames)"; then
+    echo "pre-commit: only docs-only changes (*.md outside .claude/ and .github/) may be committed on" >&2
+    echo "main; the files above need a branch and a PR: git checkout -b feat/<item>-<slug>" >&2
+    exit 1
+  fi
 fi
 python3 scripts/check_leaks.py --staged --require-denylist || exit 1
 python3 -m unittest discover -q tests >/dev/null 2>&1 || {

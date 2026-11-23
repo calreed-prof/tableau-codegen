@@ -31,6 +31,8 @@ Each item ships as its own PR, backed by a Desktop-saved reference. Done = merge
   by default a sheet with a measure on color now gets a legend (it was skipped before).
 - **Fix (PR #13):** equal row/column splits are pinned (fixed px on all but the last slot); Desktop
   re-split our flexible zones by content, so "equal" splits weren't equal.
+- **Process (chore):** docs-only "fast lane" straight to `main`, enforced by the git hooks
+  (Markdown outside `.claude/`/`.github/` only); everything else still goes through a reviewed PR.
 
 ## Next (in order)
 - **M1 Filters (part 3):** single values, exclude, numeric/date ranges, top-N; each needs a reference.
