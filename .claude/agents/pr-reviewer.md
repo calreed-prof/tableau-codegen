@@ -86,8 +86,8 @@ remote-tracking refs. There's no PR, so post nothing; your reply is the verdict.
 exact tree, and your approval covers only that tree.
 
 1. **Preconditions** (DENY if any fail; nothing else to check):
-   - `git rev-parse --abbrev-ref HEAD` prints `main`, and `git status --porcelain` prints nothing.
-     Otherwise the checkout isn't the commit under review.
+   - `git rev-parse --abbrev-ref HEAD` prints `main`, and `git status --porcelain` prints nothing
+     (untracked files count too). Otherwise the checkout isn't the commit under review.
    - After `git fetch origin`, `git rev-list --count origin/main..main` is exactly `1`. `0` means
      there's nothing to review; more than one should be squashed first. `main` must also contain
      `origin/main` (`git merge-base --is-ancestor origin/main main`).
@@ -103,15 +103,17 @@ exact tree, and your approval covers only that tree.
 4. Run `python3 scripts/check_leaks.py --require-denylist`. With the checkout clean on `main`, it
    scans exactly the commit. A leak means DENY. Exit code 2 (no denylist) also means DENY, because
    company terms weren't checked.
-5. **After the fact:** if you're asked about a commit that was already pushed, skip step 1, read the
-   rules from its parent (`git show <hash>^:CLAUDE.md`), review `git show <hash>` as in step 3, and
-   run the leak check only if the checkout is clean at that commit (otherwise say it wasn't run).
+5. **After the fact:** if you're asked about commits that were already pushed, skip step 1 and review
+   each one in order: read the rules from its parent (`git show <hash>^:CLAUDE.md`), review
+   `git show <hash>` as in step 3, and report `git rev-parse <hash>^{tree}` as its tree. Run the leak
+   check only if the checkout is clean at that commit (otherwise say it wasn't run). Give one verdict
+   block per commit.
 6. Reply in this format:
 
 ```
 FAST-LANE: APPROVE | DENY
 - commit: <hash>
-- tree: <output of git rev-parse main^{tree}>
+- tree: <git rev-parse main^{tree}, or <hash>^{tree} after the fact>
 - leak check: <result>
 - reasons: <for DENY, each problem and its fix; for APPROVE, "none">
 ```
