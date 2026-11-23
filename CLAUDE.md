@@ -25,13 +25,22 @@ All are defined, with where the file lives, at the top of `docs/FORMAT.md`. Most
    the tests and leak check; CI runs on the push. Not for: new `REF-x` facts or changes to the rules
    in this file (Workflow, Evidence rule, Scope, Data hygiene), which need a PR; or docs owed by a
    code change, which belong in that change's PR.
-   - **AI agents get a fast-lane review before pushing.** Commit on `main`, don't push yet, and
-     run a **fresh** `pr-reviewer` agent in fast-lane mode (see its instructions). Pass it
-     `origin/main..main` and anything it can't check itself, such as the human's own words when
-     recording an `OPEN-x`/`OBS`. On `FAST-LANE: APPROVE`, add a `Fast-lane-review: APPROVE`
-     trailer to each commit message, then push. On `FAST-LANE: DENY`, either fix the problem and
-     ask a **new** reviewer, or move the commits to a branch and open a PR (steps 1–6). Never push
-     a denied change. The human's own docs pushes skip this review.
+   - **AI agents get a fast-lane review before pushing.** The human's own docs pushes skip it.
+     1. Run `git fetch origin`, then `git pull --rebase`. Make the change as **one** commit on
+        `main`, leave the working tree clean, and don't push.
+     2. Run a **fresh** `pr-reviewer` in fast-lane mode (step 5's fallback applies if the agent
+        type isn't registered). Pass it the human's own words verbatim for any `OPEN-x`/`OBS`.
+     3. On `FAST-LANE: APPROVE` it reports the commit's tree hash. Amend only the message:
+        `git commit --amend --only --no-edit --trailer "Fast-lane-review: APPROVE tree <hash>"`.
+        Check that `git rev-parse main^{tree}` still prints that hash, then push.
+     4. A rejected push, a rebase, or any edit after the approval means a **new** review. Never
+        push a denied change or a tree the reviewer didn't approve.
+     5. On `FAST-LANE: DENY`, either fix the problem and ask a new reviewer, or move the commit to
+        a branch (`git branch chore/<slug>`, then `git reset --keep origin/main`) and follow
+        steps 1–6.
+     6. Nothing enforces the trailer, so it's a record, not proof. If an agent pushed without an
+        approval, it tells the human, gets a fast-lane review of the pushed commit after the fact,
+        then fixes forward or reverts.
 1. **Otherwise, never commit to `main`.** Branch per change: `feat/<roadmap-id>-<slug>`, `fix/<slug>`,
    `chore/<slug>` (`chore/` for tooling).
 2. **One roadmap item per PR.** Name the item from `ROADMAP.md` in the PR. Unrelated refactors,

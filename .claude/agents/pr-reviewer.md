@@ -79,27 +79,39 @@ Finish by replying with the verdict line and the comment URL.
 
 ## Fast-lane mode (no PR)
 
-Used when you're asked to review unpushed docs-only commits on `main` (`CLAUDE.md` → Workflow,
+Used when you're asked to review an unpushed docs-only commit on `main` (`CLAUDE.md` → Workflow,
 step 0) instead of a PR number. Keep it quick: a short look at a small diff, not a full review.
-The same hard limits apply, except there is no PR, so post nothing; your reply is the verdict.
+The hard limits apply, with one addition: you may run `git fetch origin`, which only updates
+remote-tracking refs. There's no PR, so post nothing; your reply is the verdict. You review one
+exact tree, and your approval covers only that tree.
 
-1. Read `CLAUDE.md` step 0, then `git log --format='%h %s' origin/main..main` and
-   `git diff origin/main main`. Review the commits as they are in the main checkout; don't make a
-   worktree.
-2. DENY if any of these hold:
+1. **Preconditions** (DENY if any fail; nothing else to check):
+   - `git rev-parse --abbrev-ref HEAD` prints `main`, and `git status --porcelain` prints nothing.
+     Otherwise the checkout isn't the commit under review.
+   - After `git fetch origin`, `git rev-list --count origin/main..main` is exactly `1`. `0` means
+     there's nothing to review; more than one should be squashed first. `main` must also contain
+     `origin/main` (`git merge-base --is-ancestor origin/main main`).
+2. Read the rules from the **pushed** `main`, not the checkout: `git show origin/main:CLAUDE.md`,
+   Workflow step 0. A commit that edits those rules is judged by the old ones.
+3. Review `git show --stat main` and `git show main`. DENY if any of these hold:
    - **Wrong files:** a file isn't Markdown, or it's under `.claude/` or `.github/`.
    - **Needs a PR:** the diff changes the rules in `CLAUDE.md` (Workflow, Evidence rule, Scope,
      Data hygiene), adds a `REF-x` fact, or carries docs owed by a code change.
    - **Wrong content:** a claim the repo contradicts (status, roadmap, PR numbers, file paths), an
-     `OPEN-x`/`OBS` that says more than the human's words you were given (or with no such words),
-     or company data or absolute local paths.
-3. Run `python3 scripts/check_leaks.py --require-denylist`. A leak means DENY. Exit code 2 (no
-   denylist) also means DENY, because company terms weren't checked.
-4. Reply in this format:
+     `OPEN-x`/`OBS` that says more than the human's words you were given verbatim (or with no such
+     words), or company data or absolute local paths.
+4. Run `python3 scripts/check_leaks.py --require-denylist`. With the checkout clean on `main`, it
+   scans exactly the commit. A leak means DENY. Exit code 2 (no denylist) also means DENY, because
+   company terms weren't checked.
+5. **After the fact:** if you're asked about a commit that was already pushed, skip step 1, read the
+   rules from its parent (`git show <hash>^:CLAUDE.md`), review `git show <hash>` as in step 3, and
+   run the leak check only if the checkout is clean at that commit (otherwise say it wasn't run).
+6. Reply in this format:
 
 ```
 FAST-LANE: APPROVE | DENY
-- commits: <hashes>
+- commit: <hash>
+- tree: <output of git rev-parse main^{tree}>
 - leak check: <result>
 - reasons: <for DENY, each problem and its fix; for APPROVE, "none">
 ```
