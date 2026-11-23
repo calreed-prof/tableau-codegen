@@ -19,8 +19,14 @@ All are defined, with where the file lives, at the top of `docs/FORMAT.md`. Most
 
 ## Workflow (mandatory)
 
-1. **Never commit to `main`.** Branch per change: `feat/<roadmap-id>-<slug>`, `fix/<slug>`, `chore/<slug>`
-   (`chore/` for tooling and docs-only changes).
+0. **Fast lane: docs-only changes go straight to `main`.** If every file touched is Markdown outside
+   `.claude/` and `.github/` (status updates, recording an `OPEN-x`/`OBS`, roadmap edits, typos),
+   commit on `main` and push; steps 1–6 don't apply. The hooks enforce the file rule and still run
+   the tests and leak check; CI runs on the push. Not for: new `REF-x` facts or changes to the rules
+   in this file (Workflow, Evidence rule, Scope, Data hygiene), which need a PR; or docs owed by a
+   code change, which belong in that change's PR.
+1. **Otherwise, never commit to `main`.** Branch per change: `feat/<roadmap-id>-<slug>`, `fix/<slug>`,
+   `chore/<slug>` (`chore/` for tooling).
 2. **One roadmap item per PR.** Name the item from `ROADMAP.md` in the PR. Unrelated refactors,
    "while I was here" changes, and features not on the roadmap go in a separate PR or nowhere.
 3. **Update the docs in the same PR** as the change it describes:
@@ -30,7 +36,8 @@ All are defined, with where the file lives, at the top of `docs/FORMAT.md`. Most
      verified;
    - `README.md`, when the spec changes.
 
-   A docs-only PR is fine for docs work itself, but not as a follow-up to a change that skipped this step.
+   Docs work on its own goes through the fast lane (step 0), but never as a follow-up to a change
+   that skipped this step.
 4. **Check, then open the PR.**
    - Run `python3 -m unittest discover tests` and `python3 scripts/check_leaks.py --require-denylist`.
      Both must pass.
