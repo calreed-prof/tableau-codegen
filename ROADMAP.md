@@ -33,6 +33,8 @@ Each item ships as its own PR, backed by a Desktop-saved reference. Done = merge
   re-split our flexible zones by content, so "equal" splits weren't equal.
 - **Process (PR #16):** docs-only "fast lane" straight to `main`, enforced by the git hooks
   (Markdown outside `.claude/`/`.github/` only); everything else still goes through a reviewed PR.
+- **Process (PR #17):** AI agents need a quick `pr-reviewer` fast-lane verdict before pushing docs
+  to `main`; the human's own docs pushes don't.
 
 ## Next (in order)
 - **M1 Filters (part 3):** single values, exclude, numeric/date ranges, top-N; each needs a reference.

@@ -25,6 +25,22 @@ All are defined, with where the file lives, at the top of `docs/FORMAT.md`. Most
    the tests and leak check; CI runs on the push. Not for: new `REF-x` facts or changes to the rules
    in this file (Workflow, Evidence rule, Scope, Data hygiene), which need a PR; or docs owed by a
    code change, which belong in that change's PR.
+   - **AI agents get a fast-lane review before pushing.** The human's own docs pushes skip it.
+     a. Run `git fetch origin`, then `git pull --rebase`. Make the change as **one** commit on
+        `main`, leave the working tree clean, and don't push.
+     b. Run a **fresh** `pr-reviewer` in fast-lane mode (Workflow step 5's fallback applies if the
+        agent type isn't registered). Pass it the human's own words verbatim for any `OPEN-x`/`OBS`.
+     c. On `FAST-LANE: APPROVE` it reports the commit's tree hash. Amend only the message:
+        `git commit --amend --only --no-edit --trailer "Fast-lane-review: APPROVE tree <hash>"`.
+        Check that `git rev-parse main^{tree}` still prints that hash, then push.
+     d. A rejected push, a rebase, or any edit after the approval means a **new** review. Never
+        push a denied change or a tree the reviewer didn't approve.
+     e. On `FAST-LANE: DENY`, either fix the problem and ask a new reviewer, or move the commit to
+        a branch (`git branch chore/<slug>`, then `git reset --keep origin/main`) and follow
+        Workflow steps 1–6.
+     f. Nothing enforces the trailer, so it's a record, not proof. If an agent pushed without an
+        approval, it tells the human, gets a fast-lane review of each pushed commit after the fact,
+        then fixes forward or reverts.
 1. **Otherwise, never commit to `main`.** Branch per change: `feat/<roadmap-id>-<slug>`, `fix/<slug>`,
    `chore/<slug>` (`chore/` for tooling).
 2. **One roadmap item per PR.** Name the item from `ROADMAP.md` in the PR. Unrelated refactors,

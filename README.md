@@ -204,7 +204,7 @@ See `CLAUDE.md` (rules and current status) and `ROADMAP.md` (scope). In short:
 3. A human verifies the result in Desktop and merges.
 
 Docs-only changes (Markdown outside `.claude/` and `.github/`) can skip this and go straight to
-`main` (the "fast lane"; limits in `CLAUDE.md`).
+`main` (the "fast lane"; limits in `CLAUDE.md`). AI agents get a quick reviewer verdict before pushing.
 
 Run `git config core.hooksPath githooks` once per clone to enable the local guards: no commits or
 pushes to `main` except docs-only ones, plus the leak check and tests before every commit.
