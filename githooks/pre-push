@@ -10,8 +10,14 @@ while read -r local_ref local_sha remote_ref remote_sha; do
     echo "pre-push: deleting or creating main is blocked." >&2
     exit 1
   fi
-  if ! files=$(git diff --name-only --no-renames "$remote_sha...$local_sha" 2>/dev/null); then
-    echo "pre-push: can't compare with the remote main; run git pull --ff-only first." >&2
+  # Only fast-forwards: a force-push could drop reviewed commits that a diff from the merge base
+  # never sees. Then compare the two trees directly.
+  if ! git merge-base --is-ancestor "$remote_sha" "$local_sha" 2>/dev/null; then
+    echo "pre-push: main has moved on the remote (or this is a force-push); run git pull --rebase first." >&2
+    exit 1
+  fi
+  if ! files=$(git diff --name-only --no-renames "$remote_sha" "$local_sha" 2>/dev/null); then
+    echo "pre-push: can't compare with the remote main; run git pull --rebase first." >&2
     exit 1
   fi
   if ! fastlane_ok "$files"; then

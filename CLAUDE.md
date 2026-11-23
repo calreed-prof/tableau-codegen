@@ -36,7 +36,8 @@ All are defined, with where the file lives, at the top of `docs/FORMAT.md`. Most
      verified;
    - `README.md`, when the spec changes.
 
-   A docs-only PR is fine for docs work itself, but not as a follow-up to a change that skipped this step.
+   Docs work on its own goes through the fast lane (step 0), but never as a follow-up to a change
+   that skipped this step.
 4. **Check, then open the PR.**
    - Run `python3 -m unittest discover tests` and `python3 scripts/check_leaks.py --require-denylist`.
      Both must pass.
